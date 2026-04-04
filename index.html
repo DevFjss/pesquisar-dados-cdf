@@ -382,10 +382,11 @@
             animation: spin 0.8s linear infinite;
         }
 
-        /* Destaque para o termo pesquisado */
         .search-highlight {
-            background-color: #fff3cd;
+            background-color: #ffeb3b;
             font-weight: 600;
+            padding: 0 2px;
+            border-radius: 2px;
         }
 
         @media (max-width: 750px) {
@@ -526,9 +527,14 @@
     
     function formatAsInteger(value) {
         if (value === undefined || value === null) return '';
+        // Garante que o valor seja tratado como string e extrai números
         let str = value.toString().trim();
-        const numericMatch = str.match(/-?\d+/);
-        if (numericMatch) return parseInt(numericMatch[0], 10).toString();
+        // Se for número puro, retorna como string
+        if (/^\d+$/.test(str)) {
+            return str;
+        }
+        const numericMatch = str.match(/\d+/);
+        if (numericMatch) return numericMatch[0];
         return str;
     }
     
@@ -541,33 +547,46 @@
         return sum;
     }
     
-    // Função melhorada para criar texto de busca incluindo TODAS as colunas
+    // Função melhorada para criar texto de busca - GARANTE que NTE seja incluído
     function createSearchText(row) {
         const searchParts = [];
         
-        // Adiciona cada coluna individualmente, garantindo que NTE seja incluído
-        for (let i = 0; i < FULL_COLUMNS.length; i++) {
-            const colName = FULL_COLUMNS[i];
-            let value = row[colName];
-            
-            if (value !== undefined && value !== null && value !== '') {
-                // Converte para string e remove espaços extras
-                let strValue = value.toString().trim();
-                
-                // Para NTE, garante que números sejam tratados corretamente
-                if (colName === 'NTE') {
-                    // Extrai apenas números para busca numérica
-                    const numbers = strValue.match(/\d+/g);
-                    if (numbers) {
-                        searchParts.push(numbers.join(''));
-                    }
-                }
-                
-                searchParts.push(strValue.toLowerCase());
+        // FORÇA a inclusão do NTE de várias formas
+        const nteRaw = row['NTE'];
+        if (nteRaw !== undefined && nteRaw !== null && nteRaw !== '') {
+            const nteStr = nteRaw.toString().trim();
+            searchParts.push(nteStr); // texto original
+            // Extrai números do NTE
+            const nteNumbers = nteStr.match(/\d+/g);
+            if (nteNumbers) {
+                searchParts.push(nteNumbers.join(''));
+            }
+            // Adiciona versão sem zeros à esquerda se houver
+            const nteClean = parseInt(nteStr);
+            if (!isNaN(nteClean)) {
+                searchParts.push(nteClean.toString());
             }
         }
         
-        // Também adiciona valores numéricos formatados para busca
+        // Adiciona todas as outras colunas
+        for (let i = 0; i < FULL_COLUMNS.length; i++) {
+            const colName = FULL_COLUMNS[i];
+            if (colName === 'NTE') continue; // Já adicionamos acima
+            
+            let value = row[colName];
+            if (value !== undefined && value !== null && value !== '') {
+                let strValue = value.toString().trim();
+                searchParts.push(strValue.toLowerCase());
+                
+                // Para valores numéricos, adiciona versão pura
+                const numbers = strValue.match(/\d+/g);
+                if (numbers) {
+                    searchParts.push(numbers.join(''));
+                }
+            }
+        }
+        
+        // Adiciona valores formatados
         if (row._custeioNum > 0) {
             searchParts.push(row._custeioNum.toString());
             searchParts.push(formatBRL(row._custeioNum).toLowerCase());
@@ -577,7 +596,8 @@
             searchParts.push(formatBRL(row._capitalNum).toLowerCase());
         }
         
-        return searchParts.join(' ');
+        const result = searchParts.join(' ').toLowerCase();
+        return result;
     }
     
     // Pré-processa os dados para busca rápida
@@ -591,15 +611,15 @@
             // Cria texto de busca completo
             row._searchText = createSearchText(row);
             
-            // Debug: mostra o texto de busca para verificar se NTE está incluído
-            if (i < 3) {
-                console.log(`Linha ${i} - NTE: "${row['NTE']}" - SearchText: "${row._searchText.substring(0, 100)}"`);
+            // Debug: mostra os primeiros registros
+            if (i < 5) {
+                console.log(`Registro ${i}: NTE="${row['NTE']}" -> SearchText inclui NTE? ${row._searchText.includes(row['NTE'].toString())}`);
             }
         }
         return data;
     }
     
-    // Filtro melhorado - busca em todas as colunas incluindo NTE
+    // Filtro melhorado - busca em todas as colunas
     function applyFilter(term) {
         if (filterTimeout) {
             clearTimeout(filterTimeout);
@@ -617,7 +637,7 @@
                 
                 for (let i = 0; i < fullData.length; i++) {
                     const row = fullData[i];
-                    // Busca no texto pré-processado que contém TODAS as colunas
+                    // Busca no texto pré-processado
                     if (row._searchText && row._searchText.includes(lowerTerm)) {
                         filtered.push(row);
                     }
@@ -632,15 +652,20 @@
             renderTableFast(filteredData, term.trim());
             
             const endTime = performance.now();
-            console.log(`Filtro "${term}" executado em ${(endTime - startTime).toFixed(2)}ms - ${filteredData.length} registros encontrados`);
+            console.log(`Filtro "${term}" encontrou ${filteredData.length} registros em ${(endTime - startTime).toFixed(2)}ms`);
         }, 50);
     }
     
     // Função para destacar o termo pesquisado
     function highlightText(text, searchTerm) {
-        if (!searchTerm || !text) return text;
-        const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-        return text.toString().replace(regex, '<mark class="search-highlight">$1</mark>');
+        if (!searchTerm || !text || text === '') return text;
+        try {
+            const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedTerm})`, 'gi');
+            return text.toString().replace(regex, '<mark class="search-highlight">$1</mark>');
+        } catch(e) {
+            return text;
+        }
     }
     
     // Renderização rápida
@@ -683,9 +708,9 @@
                 const row = data[i];
                 const tr = document.createElement('tr');
                 
-                // NTE (Coluna A) - agora com highlight
+                // NTE (Coluna A) - GARANTINDO que seja exibido e pesquisável
                 const tdNTE = document.createElement('td');
-                const nteValue = formatAsInteger(row['NTE']);
+                const nteValue = row['NTE'] !== undefined && row['NTE'] !== null ? row['NTE'].toString() : '';
                 tdNTE.innerHTML = searchTerm ? highlightText(nteValue, searchTerm) : nteValue;
                 tr.appendChild(tdNTE);
                 
@@ -884,9 +909,12 @@
         updateMainCards();
         showLoading(false);
         
-        console.log(`Aba "${tab.sheetName}" carregada com ${fullData.length} registros`);
+        console.log(`✅ Aba "${tab.sheetName}" carregada com ${fullData.length} registros`);
         if (fullData.length > 0) {
-            console.log(`Exemplo de NTE: "${fullData[0]['NTE']}"`);
+            console.log(`📊 Exemplo de NTE: "${fullData[0]['NTE']}"`);
+            // Teste rápido: verifica se o número 21 existe nos dados
+            const has21 = fullData.some(row => row['NTE'] && row['NTE'].toString().includes('21'));
+            console.log(`🔍 Existe NTE "21" nos dados? ${has21 ? 'SIM' : 'NÃO'}`);
         }
     }
     
