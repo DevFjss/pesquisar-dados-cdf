@@ -3,49 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Filtro CDF</title>
+<title>CDF Filtro</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body { font-family: Arial; padding:20px; background:#f4f7fc; }
-input { padding:10px; width:300px; margin-bottom:10px; }
-table { width:100%; border-collapse:collapse; font-size:12px; }
-th,td { padding:8px; border-bottom:1px solid #ddd; }
-th { background:#eee; }
-mark { background:yellow; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter;background:#f4f7fc;padding:20px}
+
+.main-header{display:flex;justify-content:space-between;background:#fff;padding:15px;border-radius:15px;margin-bottom:15px}
+.stat-number{font-weight:800;font-size:20px}
+
+.search-box{background:#fff;padding:10px;border-radius:20px;margin-bottom:10px}
+.search-box input{border:none;width:100%;outline:none}
+
+.table-wrapper{background:#fff;border-radius:15px;overflow:auto;max-height:60vh}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid #eee}
+th{position:sticky;top:0;background:#fff}
+
+mark{background:yellow}
 </style>
 </head>
 
 <body>
 
-<h2>🔍 Pesquisa CDF</h2>
+<div class="main-header">
+<div>
+<h2>🔍 Pesquisar CDF</h2>
+<p>Filtro NTE rápido</p>
+</div>
 
+<div>
+<div>Total: <span id="totalRecords">0</span></div>
+<div>Valor: <span id="totalValue">R$0</span></div>
+</div>
+</div>
+
+<div class="search-box">
 <input type="text" id="searchInput" placeholder="Digite NTE, município ou escola">
+</div>
 
-<p>📋 <span id="count">0</span> registros | 💰 <span id="total">R$ 0</span></p>
+<p>Filtrados: <span id="filteredCount">0</span> | Valor: <span id="filteredSum">R$0</span></p>
 
+<div class="table-wrapper">
 <table>
-<thead>
-<tr>
-<th>NTE</th>
-<th>Município</th>
-<th>Escola</th>
-<th>Custeio</th>
-<th>Capital</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
+<thead id="tableHead"></thead>
+<tbody id="tableBody"></tbody>
 </table>
+</div>
 
 <script>
 const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
 
-let dadosCompletos = [];
-let dadosFiltrados = [];
-let timeoutFiltro = null;
+const COLUNAS = [
+'NTE','Municipio','Cod. SEC','Cod. INEP','Unidade Escolar',
+'Valor custeio','Valor capital','Remessa','Data da remessa','Finalidade'
+];
+
+let dadosCompletos=[];
+let dadosFiltrados=[];
+let timeoutFiltro=null;
+
+const searchInput=document.getElementById('searchInput');
+const filteredCountSpan=document.getElementById('filteredCount');
+const filteredSumSpan=document.getElementById('filteredSum');
+const totalRecordsSpan=document.getElementById('totalRecords');
+const totalValueSpan=document.getElementById('totalValue');
+const tableHead=document.getElementById('tableHead');
+const tableBody=document.getElementById('tableBody');
 
 function extrairNumero(v){
  if(!v) return 0;
- return parseFloat(v.replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,'')) || 0;
+ let s=v.toString().replace(/R\$/,'').replace(/\./g,'').replace(',','.');
+ return parseFloat(s.replace(/[^\d.-]/g,''))||0;
 }
 
 function formatarMoeda(v){
@@ -54,92 +85,109 @@ function formatarMoeda(v){
 
 function prepararDados(dados){
  for(let i=0;i<dados.length;i++){
-   let nte = dados[i].NTE ? dados[i].NTE.toString().trim() : '';
-   let num = parseInt(nte,10);
+  let nte=dados[i].NTE?dados[i].NTE.toString().trim():'';
+  let num=parseInt(nte,10);
 
-   dados[i]._nteNumero = isNaN(num)?null:num;
-   dados[i]._nteString = !isNaN(num) ? (num<10?'0'+num:num.toString()) : nte;
+  dados[i]._nteNumero=isNaN(num)?null:num;
+  dados[i]._nteString=!isNaN(num)?(num<10?'0'+num:num.toString()):nte;
 
-   dados[i]._custeio = extrairNumero(dados[i.custeio]);
-   dados[i]._capital = extrairNumero(dados[i.capital]);
+  dados[i]._custeio=extrairNumero(dados[i]['Valor custeio']);
+  dados[i]._capital=extrairNumero(dados[i]['Valor capital']);
  }
  return dados;
 }
 
-function calcular(dados){
+function calcularSoma(dados){
  let soma=0;
  for(let d of dados){
-   soma += d._custeio + d._capital;
+  soma+=d._custeio+d._capital;
  }
  return soma;
 }
 
-function filtrar(termo){
+function filtrarDados(termo){
  if(timeoutFiltro) clearTimeout(timeoutFiltro);
 
- timeoutFiltro = setTimeout(()=>{
-   let t = termo.trim();
+ timeoutFiltro=setTimeout(()=>{
+  let t=termo.trim();
 
-   if(!t){
-     dadosFiltrados = dadosCompletos;
-   }else{
-     let lower = t.toLowerCase();
-     let num = parseInt(t,10);
+  if(!t){
+   dadosFiltrados=dadosCompletos;
+  }else{
+   let lower=t.toLowerCase();
+   let num=parseInt(t,10);
+   let res=[];
 
-     let res=[];
+   for(let item of dadosCompletos){
 
-     for(let d of dadosCompletos){
-
-       if(!isNaN(num)){
-         if(d._nteNumero === num){
-           res.push(d);
-           continue;
-         }
-       }
-
-       if(
-         (d.Municipio && d.Municipio.toLowerCase().includes(lower)) ||
-         (d.Escola && d.Escola.toLowerCase().includes(lower))
-       ){
-         res.push(d);
-       }
+    if(!isNaN(num)){
+     if(item._nteNumero===num){
+      res.push(item);
+      continue;
      }
+    }
 
-     dadosFiltrados = res;
+    if(
+     (item.Municipio && item.Municipio.toLowerCase().includes(lower)) ||
+     (item['Unidade Escolar'] && item['Unidade Escolar'].toLowerCase().includes(lower)) ||
+     (item['Cod. SEC'] && item['Cod. SEC'].toLowerCase().includes(lower))
+    ){
+     res.push(item);
+    }
    }
 
-   render();
+   dadosFiltrados=res;
+  }
+
+  filteredCountSpan.innerText=dadosFiltrados.length;
+  filteredSumSpan.innerText=formatarMoeda(calcularSoma(dadosFiltrados));
+
+  renderizarTabela(dadosFiltrados,termo);
  },200);
 }
 
-function render(){
- let tbody = document.getElementById('tbody');
- tbody.innerHTML='';
-
- for(let d of dadosFiltrados){
-   let tr=document.createElement('tr');
-
-   let td1=document.createElement('td');
-   td1.innerText=d._nteString;
-
-   let td2=document.createElement('td');
-   td2.innerText=d.Municipio;
-
-   let td3=document.createElement('td');
-   td3.innerText=d.Escola;
-
-   let td4=document.createElement('td');
-   td4.innerText=formatarMoeda(d._custeio);
-
-   let td5=document.createElement('td');
-   td5.innerText=formatarMoeda(d._capital);
-
-   tr.append(td1,td2,td3,td4,td5);
-   tbody.appendChild(tr);
+function renderizarTabela(dados,termo=''){
+ if(tableHead.children.length===0){
+  let tr=document.createElement('tr');
+  for(let c of COLUNAS){
+   let th=document.createElement('th');
+   th.innerText=c;
+   tr.appendChild(th);
+  }
+  tableHead.appendChild(tr);
  }
 
- document.getElementById('count').innerText=dadosFiltrados.length;
- document.getElementById('total').innerText=formatarMoeda(calcular(dadosFiltrados));
+ tableBody.innerHTML='';
+
+ for(let linha of dados){
+  let tr=document.createElement('tr');
+
+  let tdNTE=document.createElement('td');
+  let nte=linha._nteString;
+
+  let num=parseInt(termo);
+  if(!isNaN(num)&&linha._nteNumero===num){
+   tdNTE.innerHTML='<mark>'+nte+'</mark>';
+  }else{
+   tdNTE.innerText=nte;
+  }
+  tr.appendChild(tdNTE);
+
+  for(let i=1;i<COLUNAS.length;i++){
+   let td=document.createElement('td');
+
+   if(i===5) td.innerText=formatarMoeda(linha._custeio);
+   else if(i===6) td.innerText=formatarMoeda(linha._capital);
+   else td.innerText=linha[COLUNAS[i]]||'';
+
+   tr.appendChild(td);
+  }
+
+  tableBody.appendChild(tr);
+ }
+
+ totalRecordsSpan.innerText=dadosCompletos.length;
+ totalValueSpan.innerText=formatarMoeda(calcularSoma(dadosCompletos));
 }
 
 async function carregar(){
@@ -151,27 +199,25 @@ async function carregar(){
  let linhas=txt.split('\n');
  let dados=[];
 
- for(let i=1;i<linhas.length;i++){
-   let col=linhas[i].split(',');
-   if(col.length<5) continue;
+ for(let i=2;i<linhas.length;i++){
+  let col=linhas[i].split(',');
+  if(col.length<5) continue;
 
-   dados.push({
-     NTE:col[0],
-     Municipio:col[1],
-     Escola:col[2],
-     custeio:col[3],
-     capital:col[4]
-   });
+  let obj={};
+  for(let j=0;j<COLUNAS.length;j++){
+   obj[COLUNAS[j]]=col[j]||'';
+  }
+
+  dados.push(obj);
  }
 
  dadosCompletos=prepararDados(dados);
  dadosFiltrados=dadosCompletos;
 
- render();
+ renderizarTabela(dadosCompletos);
 }
 
-document.getElementById('searchInput')
-.addEventListener('input',e=>filtrar(e.target.value));
+searchInput.addEventListener('input',e=>filtrarDados(e.target.value));
 
 carregar();
 </script>
