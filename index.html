@@ -1,226 +1,865 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CDF Filtro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CDF - Manutenção / FAED / PNAE | Filtro Rápido</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1a2c3e;
+            padding: 20px;
+        }
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Inter;background:#f4f7fc;padding:20px}
+        .dashboard-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
 
-.main-header{display:flex;justify-content:space-between;background:#fff;padding:15px;border-radius:15px;margin-bottom:15px}
-.stat-number{font-weight:800;font-size:20px}
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
 
-.search-box{background:#fff;padding:10px;border-radius:20px;margin-bottom:10px}
-.search-box input{border:none;width:100%;outline:none}
+        .title-area h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a4a6e;
+        }
 
-.table-wrapper{background:#fff;border-radius:15px;overflow:auto;max-height:60vh}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th,td{padding:8px;border-bottom:1px solid #eee}
-th{position:sticky;top:0;background:#fff}
+        .title-area p {
+            font-size: 0.7rem;
+            color: #5a6e85;
+        }
 
-mark{background:yellow}
-</style>
+        .stats-duo {
+            display: flex;
+            gap: 25px;
+            background: #f0f4f8;
+            padding: 8px 20px;
+            border-radius: 40px;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #4f6f8f;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0e3b5c;
+        }
+
+        .tabs-wrapper {
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tabs-list {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 50px;
+            border: 1px solid #e2eaf1;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #3f5a77;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: #1f5780;
+            color: white;
+        }
+
+        .add-tab-btn {
+            background: #eef2f7;
+            border: 1px dashed #8ba3bc;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .search-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .search-box {
+            flex: 2;
+            min-width: 250px;
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border-radius: 40px;
+            border: 1px solid #dce5ef;
+            padding: 0 15px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 10px;
+            border: none;
+            background: transparent;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .filter-stats {
+            display: flex;
+            gap: 20px;
+            background: #f0f4f8;
+            padding: 5px 20px;
+            border-radius: 40px;
+        }
+
+        .filter-chip {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .filter-chip span:first-child {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .filter-chip span:last-child {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1e4a76;
+        }
+
+        .table-wrapper {
+            background: white;
+            border-radius: 16px;
+            overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            min-width: 1000px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px 10px;
+            background: #f8fafc;
+            font-weight: 700;
+            color: #1f4970;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f5fa;
+            color: #2c405c;
+        }
+
+        .data-table tr:hover td {
+            background-color: #f0f7ff;
+        }
+
+        .valor-highlight {
+            font-weight: 700;
+            color: #1f6e3f;
+        }
+
+        .empty-message td {
+            text-align: center;
+            padding: 40px;
+            color: #7b94b0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            width: 350px;
+            max-width: 90%;
+        }
+        
+        .modal-content h3 {
+            margin-bottom: 15px;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #dce5ef;
+            border-radius: 10px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .modal-buttons button {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-confirm {
+            background: #1f5780;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: #e2e8f0;
+        }
+
+        .loading {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f5780;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 1000;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        mark {
+            background: #ffeb3b;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .nte-highlight {
+            font-weight: 700;
+            color: #1f5780;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="main-header">
-<div>
-<h2>🔍 Pesquisar CDF</h2>
-<p>Filtro NTE rápido</p>
+<div class="loading" id="loading">Carregando...</div>
+
+<div class="dashboard-container">
+    <div class="main-header">
+        <div class="title-area">
+            <h1>🔍 Pesquisar CDF</h1>
+            <p>Filtro rápido - Busque NTE (01, 02, 03... até 27)</p>
+        </div>
+        <div class="stats-duo">
+            <div class="stat-card">
+                <div class="stat-label">TOTAL</div>
+                <div class="stat-number" id="totalRecords">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">VALOR TOTAL</div>
+                <div class="stat-number" id="totalValue">R$ 0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs-wrapper">
+        <div class="tabs-list" id="tabsList">
+            <button class="tab-btn active" data-tab="tab_0">📊 GeradorManut</button>
+            <button class="add-tab-btn" id="addTabBtn">➕ Nova Consulta</button>
+        </div>
+    </div>
+
+    <div class="search-panel">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Pesquisar NTE (ex: 01, 02, 10, 21), Município, Escola..." autocomplete="off">
+        </div>
+        <div class="filter-stats">
+            <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
+            <div class="filter-chip">💰 Valor: <span id="filteredSum">R$ 0</span></div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table" id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
+        Fonte: Google Sheets | Dica: pesquise NTE como 01, 02, 03... ou apenas 1, 2, 3...
+    </footer>
 </div>
 
-<div>
-<div>Total: <span id="totalRecords">0</span></div>
-<div>Valor: <span id="totalValue">R$0</span></div>
-</div>
-</div>
-
-<div class="search-box">
-<input type="text" id="searchInput" placeholder="Digite NTE, município ou escola">
-</div>
-
-<p>Filtrados: <span id="filteredCount">0</span> | Valor: <span id="filteredSum">R$0</span></p>
-
-<div class="table-wrapper">
-<table>
-<thead id="tableHead"></thead>
-<tbody id="tableBody"></tbody>
-</table>
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3>➕ Nova consulta</h3>
+        <input type="text" id="sheetNameInput" placeholder="Nome da aba (ex: GeradorFaed)">
+        <input type="text" id="tabLabelInput" placeholder="Nome exibido (ex: FAED 2026)">
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="cancelBtn">Cancelar</button>
+            <button class="btn-confirm" id="confirmBtn">Adicionar</button>
+        </div>
+    </div>
 </div>
 
 <script>
-const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
-
-const COLUNAS = [
-'NTE','Municipio','Cod. SEC','Cod. INEP','Unidade Escolar',
-'Valor custeio','Valor capital','Remessa','Data da remessa','Finalidade'
-];
-
-let dadosCompletos=[];
-let dadosFiltrados=[];
-let timeoutFiltro=null;
-
-const searchInput=document.getElementById('searchInput');
-const filteredCountSpan=document.getElementById('filteredCount');
-const filteredSumSpan=document.getElementById('filteredSum');
-const totalRecordsSpan=document.getElementById('totalRecords');
-const totalValueSpan=document.getElementById('totalValue');
-const tableHead=document.getElementById('tableHead');
-const tableBody=document.getElementById('tableBody');
-
-function extrairNumero(v){
- if(!v) return 0;
- let s=v.toString().replace(/R\$/,'').replace(/\./g,'').replace(',','.');
- return parseFloat(s.replace(/[^\d.-]/g,''))||0;
-}
-
-function formatarMoeda(v){
- return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
-}
-
-function prepararDados(dados){
- for(let i=0;i<dados.length;i++){
-  let nte=dados[i].NTE?dados[i].NTE.toString().trim():'';
-  let num=parseInt(nte,10);
-
-  dados[i]._nteNumero=isNaN(num)?null:num;
-  dados[i]._nteString=!isNaN(num)?(num<10?'0'+num:num.toString()):nte;
-
-  dados[i]._custeio=extrairNumero(dados[i]['Valor custeio']);
-  dados[i]._capital=extrairNumero(dados[i]['Valor capital']);
- }
- return dados;
-}
-
-function calcularSoma(dados){
- let soma=0;
- for(let d of dados){
-  soma+=d._custeio+d._capital;
- }
- return soma;
-}
-
-function filtrarDados(termo){
- if(timeoutFiltro) clearTimeout(timeoutFiltro);
-
- timeoutFiltro=setTimeout(()=>{
-  let t=termo.trim();
-
-  if(!t){
-   dadosFiltrados=dadosCompletos;
-  }else{
-   let lower=t.toLowerCase();
-   let num=parseInt(t,10);
-   let res=[];
-
-   for(let item of dadosCompletos){
-
-    if(!isNaN(num)){
-     if(item._nteNumero===num){
-      res.push(item);
-      continue;
-     }
+    const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
+    
+    const COLUNAS = [
+        'NTE', 'Municipio', 'Cod. SEC', 'Cod. INEP', 'Unidade Escolar', 
+        'Valor custeio', 'Valor capital', 'Remessa', 'Data da remessa', 'Finalidade'
+    ];
+    
+    let abas = [{ id: 'tab_0', sheetName: 'GeradorManut', label: 'GeradorManut' }];
+    let abaAtual = 'tab_0';
+    let dadosCompletos = [];
+    let dadosFiltrados = [];
+    let timeoutFiltro = null;
+    
+    const searchInput = document.getElementById('searchInput');
+    const filteredCountSpan = document.getElementById('filteredCount');
+    const filteredSumSpan = document.getElementById('filteredSum');
+    const totalRecordsSpan = document.getElementById('totalRecords');
+    const totalValueSpan = document.getElementById('totalValue');
+    const tableHead = document.getElementById('tableHead');
+    const tableBody = document.getElementById('tableBody');
+    const tabsList = document.getElementById('tabsList');
+    const loading = document.getElementById('loading');
+    const modal = document.getElementById('modal');
+    
+    function mostrarLoading(show) {
+        loading.classList.toggle('show', show);
     }
-
-    if(
-     (item.Municipio && item.Municipio.toLowerCase().includes(lower)) ||
-     (item['Unidade Escolar'] && item['Unidade Escolar'].toLowerCase().includes(lower)) ||
-     (item['Cod. SEC'] && item['Cod. SEC'].toLowerCase().includes(lower))
-    ){
-     res.push(item);
+    
+    function extrairNumero(valor) {
+        if (!valor) return 0;
+        let str = valor.toString().replace(/R\$/, '').replace(/\./g, '').replace(',', '.').trim();
+        let num = parseFloat(str.replace(/[^\d.-]/g, ''));
+        return isNaN(num) ? 0 : num;
     }
-   }
-
-   dadosFiltrados=res;
-  }
-
-  filteredCountSpan.innerText=dadosFiltrados.length;
-  filteredSumSpan.innerText=formatarMoeda(calcularSoma(dadosFiltrados));
-
-  renderizarTabela(dadosFiltrados,termo);
- },200);
-}
-
-function renderizarTabela(dados,termo=''){
- if(tableHead.children.length===0){
-  let tr=document.createElement('tr');
-  for(let c of COLUNAS){
-   let th=document.createElement('th');
-   th.innerText=c;
-   tr.appendChild(th);
-  }
-  tableHead.appendChild(tr);
- }
-
- tableBody.innerHTML='';
-
- for(let linha of dados){
-  let tr=document.createElement('tr');
-
-  let tdNTE=document.createElement('td');
-  let nte=linha._nteString;
-
-  let num=parseInt(termo);
-  if(!isNaN(num)&&linha._nteNumero===num){
-   tdNTE.innerHTML='<mark>'+nte+'</mark>';
-  }else{
-   tdNTE.innerText=nte;
-  }
-  tr.appendChild(tdNTE);
-
-  for(let i=1;i<COLUNAS.length;i++){
-   let td=document.createElement('td');
-
-   if(i===5) td.innerText=formatarMoeda(linha._custeio);
-   else if(i===6) td.innerText=formatarMoeda(linha._capital);
-   else td.innerText=linha[COLUNAS[i]]||'';
-
-   tr.appendChild(td);
-  }
-
-  tableBody.appendChild(tr);
- }
-
- totalRecordsSpan.innerText=dadosCompletos.length;
- totalValueSpan.innerText=formatarMoeda(calcularSoma(dadosCompletos));
-}
-
-async function carregar(){
- let url=`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv`;
-
- let r=await fetch(url);
- let txt=await r.text();
-
- let linhas=txt.split('\n');
- let dados=[];
-
- for(let i=2;i<linhas.length;i++){
-  let col=linhas[i].split(',');
-  if(col.length<5) continue;
-
-  let obj={};
-  for(let j=0;j<COLUNAS.length;j++){
-   obj[COLUNAS[j]]=col[j]||'';
-  }
-
-  dados.push(obj);
- }
-
- dadosCompletos=prepararDados(dados);
- dadosFiltrados=dadosCompletos;
-
- renderizarTabela(dadosCompletos);
-}
-
-searchInput.addEventListener('input',e=>filtrarDados(e.target.value));
-
-carregar();
+    
+    // Função para tratar NTE com zero à esquerda (01, 02, 03...)
+    function tratarNTE(valor) {
+        if (!valor || valor === '') return { original: '', numero: null, string: '' };
+        
+        let original = valor.toString().trim();
+        let string = original;
+        let numero = null;
+        
+        // Tenta converter para número inteiro
+        let numParse = parseInt(original, 10);
+        if (!isNaN(numParse)) {
+            numero = numParse;
+            // Formata com zero à esquerda se for de 1 a 9
+            if (numero >= 1 && numero <= 9) {
+                string = '0' + numero;
+            } else {
+                string = numero.toString();
+            }
+        }
+        
+        return { original, numero, string };
+    }
+    
+    function formatarMoeda(valor) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+    }
+    
+    function calcularSoma(dados) {
+        let soma = 0;
+        for (let i = 0; i < dados.length; i++) {
+            soma += dados[i]._custeio + dados[i]._capital;
+        }
+        return soma;
+    }
+    
+    // CRIA TEXTO PARA BUSCA - ESPECIAL PARA NTE COM ZERO À ESQUERDA
+    function criarTextoBusca(linha) {
+        let texto = '';
+        
+        // TRATAMENTO ESPECIAL PARA NTE
+        if (linha.NTE !== undefined && linha.NTE !== null && linha.NTE !== '') {
+            let nteOriginal = linha.NTE.toString().trim();
+            let nteNumero = parseInt(nteOriginal, 10);
+            
+            // Adiciona TODAS as representações possíveis do NTE
+            texto += nteOriginal + ' '; // "01", "02", etc.
+            
+            if (!isNaN(nteNumero)) {
+                texto += nteNumero + ' '; // 1, 2, 3...
+                // Adiciona com zero à esquerda se for de 1 a 9
+                if (nteNumero >= 1 && nteNumero <= 9) {
+                    texto += '0' + nteNumero + ' '; // "01", "02"...
+                }
+            }
+        }
+        
+        // Adiciona todas as outras colunas
+        for (let i = 1; i < COLUNAS.length; i++) {
+            let valor = linha[COLUNAS[i]];
+            if (valor) {
+                texto += valor.toString().toLowerCase() + ' ';
+            }
+        }
+        
+        return texto.toLowerCase();
+    }
+    
+    // PREPARA DADOS
+    function prepararDados(dados) {
+        for (let i = 0; i < dados.length; i++) {
+            // Trata NTE
+            let nteInfo = tratarNTE(dados[i].NTE);
+            dados[i]._nteOriginal = nteInfo.original;
+            dados[i]._nteNumero = nteInfo.numero;
+            dados[i]._nteString = nteInfo.string;
+            
+            // Valores financeiros
+            dados[i]._custeio = extrairNumero(dados[i]['Valor custeio']);
+            dados[i]._capital = extrairNumero(dados[i]['Valor capital']);
+            
+            // Texto para busca
+            dados[i]._busca = criarTextoBusca(dados[i]);
+        }
+        return dados;
+    }
+    
+    // VERIFICA SE O NTE CORRESPONDE AO TERMO PESQUISADO
+    function nteCorresponde(nteInfo, termoPesquisa) {
+        if (!nteInfo || !termoPesquisa) return false;
+        
+        let termo = termoPesquisa.toString().trim();
+        let termoNumero = parseInt(termo, 10);
+        let termoString = termo;
+        
+        // Se o termo tem zero à esquerda (ex: "01")
+        if (termo.length === 2 && termo[0] === '0') {
+            let numTermo = parseInt(termo, 10);
+            if (!isNaN(numTermo)) {
+                // Compara com a string do NTE (que pode ser "01" ou "1")
+                if (nteInfo.string === termo || nteInfo.original === termo) return true;
+                if (nteInfo.numero === numTermo) return true;
+            }
+        }
+        
+        // Compara como número
+        if (!isNaN(termoNumero) && nteInfo.numero === termoNumero) return true;
+        
+        // Compara como string
+        if (nteInfo.original === termoString) return true;
+        if (nteInfo.string === termoString) return true;
+        
+        return false;
+    }
+    
+    // FILTRO RÁPIDO
+    function filtrarDados(termo) {
+        if (timeoutFiltro) clearTimeout(timeoutFiltro);
+        
+        timeoutFiltro = setTimeout(() => {
+            let inicio = performance.now();
+            
+            if (!termo.trim()) {
+                dadosFiltrados = [...dadosCompletos];
+            } else {
+                let termoLower = termo.trim().toLowerCase();
+                let resultado = [];
+                
+                for (let i = 0; i < dadosCompletos.length; i++) {
+                    let item = dadosCompletos[i];
+                    let encontrou = false;
+                    
+                    // Busca normal no texto
+                    if (item._busca.includes(termoLower)) {
+                        encontrou = true;
+                    }
+                    
+                    // Busca específica por NTE
+                    if (!encontrou) {
+                        if (nteCorresponde({ numero: item._nteNumero, original: item._nteOriginal, string: item._nteString }, termo)) {
+                            encontrou = true;
+                        }
+                    }
+                    
+                    if (encontrou) {
+                        resultado.push(item);
+                    }
+                }
+                dadosFiltrados = resultado;
+            }
+            
+            let soma = calcularSoma(dadosFiltrados);
+            filteredCountSpan.innerText = dadosFiltrados.length.toLocaleString();
+            filteredSumSpan.innerText = formatarMoeda(soma);
+            
+            renderizarTabela(dadosFiltrados, termo.trim());
+            
+            let fim = performance.now();
+            console.log(`🔍 Filtro "${termo}": ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
+        }, 20); // Debounce mais rápido: 20ms
+    }
+    
+    // RENDERIZAÇÃO
+    function renderizarTabela(dados, termo = '') {
+        requestAnimationFrame(() => {
+            // Cabeçalho
+            if (tableHead.children.length === 0) {
+                let tr = document.createElement('tr');
+                for (let col of COLUNAS) {
+                    let th = document.createElement('th');
+                    th.innerText = col;
+                    tr.appendChild(th);
+                }
+                tableHead.appendChild(tr);
+            }
+            
+            if (dados.length === 0) {
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhum registro encontrado</td></tr>';
+                return;
+            }
+            
+            let fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < dados.length; i++) {
+                let linha = dados[i];
+                let tr = document.createElement('tr');
+                
+                // NTE - Exibe formatado
+                let tdNTE = document.createElement('td');
+                let nteExibir = linha._nteString || linha._nteOriginal || '';
+                // Verifica se o termo corresponde a este NTE
+                let termoNum = parseInt(termo);
+                let termoStr = termo.toString();
+                let destacaNTE = false;
+                
+                if (termo) {
+                    if (linha._nteNumero === termoNum && !isNaN(termoNum)) destacaNTE = true;
+                    if (linha._nteString === termoStr) destacaNTE = true;
+                    if (linha._nteOriginal === termoStr) destacaNTE = true;
+                }
+                
+                if (destacaNTE) {
+                    tdNTE.innerHTML = `<mark class="nte-highlight">${nteExibir}</mark>`;
+                } else {
+                    tdNTE.innerText = nteExibir;
+                }
+                tr.appendChild(tdNTE);
+                
+                // Municipio
+                let tdMun = document.createElement('td');
+                tdMun.innerText = linha.Municipio || '';
+                tr.appendChild(tdMun);
+                
+                // Cod. SEC
+                let tdSec = document.createElement('td');
+                tdSec.innerText = linha['Cod. SEC'] || '';
+                tr.appendChild(tdSec);
+                
+                // Cod. INEP
+                let tdInep = document.createElement('td');
+                tdInep.innerText = linha['Cod. INEP'] || '';
+                tr.appendChild(tdInep);
+                
+                // Unidade Escolar
+                let tdEscola = document.createElement('td');
+                tdEscola.innerText = linha['Unidade Escolar'] || '';
+                tr.appendChild(tdEscola);
+                
+                // Valor custeio
+                let tdCusteio = document.createElement('td');
+                tdCusteio.innerText = formatarMoeda(linha._custeio);
+                tdCusteio.className = 'valor-highlight';
+                tr.appendChild(tdCusteio);
+                
+                // Valor capital
+                let tdCapital = document.createElement('td');
+                tdCapital.innerText = formatarMoeda(linha._capital);
+                tdCapital.className = 'valor-highlight';
+                tr.appendChild(tdCapital);
+                
+                // Remessa
+                let tdRemessa = document.createElement('td');
+                tdRemessa.innerText = linha.Remessa || '';
+                tr.appendChild(tdRemessa);
+                
+                // Data
+                let tdData = document.createElement('td');
+                tdData.innerText = linha['Data da remessa'] || '';
+                tr.appendChild(tdData);
+                
+                // Finalidade
+                let tdFinal = document.createElement('td');
+                tdFinal.innerText = linha.Finalidade || '';
+                tr.appendChild(tdFinal);
+                
+                fragment.appendChild(tr);
+            }
+            
+            tableBody.innerHTML = '';
+            tableBody.appendChild(fragment);
+        });
+    }
+    
+    function atualizarCards() {
+        let totalRegistros = dadosCompletos.length;
+        let totalSoma = calcularSoma(dadosCompletos);
+        totalRecordsSpan.innerText = totalRegistros.toLocaleString();
+        totalValueSpan.innerText = formatarMoeda(totalSoma);
+    }
+    
+    // BUSCAR DADOS DO GOOGLE SHEETS
+    async function buscarDados(sheetName) {
+        try {
+            let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A3:J`;
+            let response = await fetch(url);
+            if (!response.ok) throw new Error();
+            let csv = await response.text();
+            let linhas = parseCSV(csv);
+            
+            let dados = [];
+            for (let i = 0; i < linhas.length; i++) {
+                let linha = linhas[i];
+                if (linha.length < 2) continue;
+                let obj = {};
+                for (let j = 0; j < COLUNAS.length; j++) {
+                    obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
+                }
+                if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
+                    dados.push(obj);
+                }
+            }
+            return prepararDados(dados);
+        } catch (err) {
+            console.log('Erro na busca principal, tentando fallback...');
+            let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+            let response = await fetch(url);
+            let csv = await response.text();
+            let linhas = parseCSV(csv);
+            let dados = [];
+            for (let i = 2; i < linhas.length; i++) {
+                let linha = linhas[i];
+                if (linha.length < 2) continue;
+                let obj = {};
+                for (let j = 0; j < COLUNAS.length; j++) {
+                    obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
+                }
+                if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
+                    dados.push(obj);
+                }
+            }
+            return prepararDados(dados);
+        }
+    }
+    
+    function parseCSV(csvStr) {
+        let linhas = csvStr.split(/\r?\n/);
+        let resultado = [];
+        for (let linha of linhas) {
+            if (linha.trim() === "") continue;
+            let row = [];
+            let atual = "";
+            let aspas = false;
+            for (let i = 0; i < linha.length; i++) {
+                let ch = linha[i];
+                if (ch === '"') {
+                    aspas = !aspas;
+                } else if (ch === ',' && !aspas) {
+                    row.push(atual.trim());
+                    atual = "";
+                } else {
+                    atual += ch;
+                }
+            }
+            row.push(atual.trim());
+            let limpo = row.map(cell => {
+                if (cell.startsWith('"') && cell.endsWith('"')) return cell.slice(1, -1);
+                return cell;
+            });
+            resultado.push(limpo);
+        }
+        return resultado;
+    }
+    
+    async function carregarAba(tabId) {
+        let aba = abas.find(t => t.id === tabId);
+        if (!aba) return;
+        
+        abaAtual = tabId;
+        
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+        });
+        
+        mostrarLoading(true);
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Carregando...</td></tr>';
+        
+        let dados = await buscarDados(aba.sheetName);
+        
+        if (dados.length === 0) {
+            dadosCompletos = [];
+            dadosFiltrados = [];
+            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">Nenhum dado encontrado na aba "${aba.sheetName}"</td></tr>`;
+            totalRecordsSpan.innerText = '0';
+            totalValueSpan.innerText = formatarMoeda(0);
+            mostrarLoading(false);
+            return;
+        }
+        
+        dadosCompletos = dados;
+        searchInput.value = '';
+        filtrarDados('');
+        atualizarCards();
+        mostrarLoading(false);
+        
+        // Mostra exemplos de NTE carregados
+        let ntes = [...new Set(dadosCompletos.map(d => d._nteString).filter(n => n))].slice(0, 10);
+        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros`);
+        console.log(`📊 NTEs encontrados: ${ntes.join(', ')}...`);
+    }
+    
+    function renderizarAbas() {
+        let botoes = [];
+        for (let aba of abas) {
+            let btn = document.createElement('button');
+            btn.className = 'tab-btn';
+            if (aba.id === abaAtual) btn.classList.add('active');
+            btn.setAttribute('data-tab', aba.id);
+            btn.innerHTML = `📋 ${aba.label}`;
+            btn.onclick = () => carregarAba(aba.id);
+            botoes.push(btn);
+        }
+        
+        let addBtn = document.createElement('button');
+        addBtn.className = 'add-tab-btn';
+        addBtn.innerHTML = '➕ Nova Consulta';
+        addBtn.onclick = () => modal.style.display = 'flex';
+        
+        tabsList.innerHTML = '';
+        for (let btn of botoes) tabsList.appendChild(btn);
+        tabsList.appendChild(addBtn);
+    }
+    
+    function adicionarAba(sheetName, label) {
+        if (!sheetName.trim()) {
+            alert('Digite o nome da aba');
+            return false;
+        }
+        let novoId = 'tab_' + Date.now();
+        abas.push({
+            id: novoId,
+            sheetName: sheetName.trim(),
+            label: label.trim() || sheetName.trim()
+        });
+        renderizarAbas();
+        carregarAba(novoId);
+        return true;
+    }
+    
+    function configurarModal() {
+        document.getElementById('cancelBtn').onclick = () => {
+            modal.style.display = 'none';
+            document.getElementById('sheetNameInput').value = '';
+            document.getElementById('tabLabelInput').value = '';
+        };
+        document.getElementById('confirmBtn').onclick = () => {
+            let sheet = document.getElementById('sheetNameInput').value.trim();
+            let label = document.getElementById('tabLabelInput').value.trim();
+            if (!sheet) {
+                alert('Informe o nome da aba');
+                return;
+            }
+            adicionarAba(sheet, label);
+            modal.style.display = 'none';
+            document.getElementById('sheetNameInput').value = '';
+            document.getElementById('tabLabelInput').value = '';
+        };
+        window.onclick = (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+    }
+    
+    function configurarBusca() {
+        searchInput.addEventListener('input', (e) => {
+            filtrarDados(e.target.value);
+        });
+    }
+    
+    async function init() {
+        configurarBusca();
+        configurarModal();
+        renderizarAbas();
+        await carregarAba('tab_0');
+    }
+    
+    init();
 </script>
-
 </body>
 </html>
