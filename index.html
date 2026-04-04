@@ -300,11 +300,6 @@
             padding: 0 2px;
             border-radius: 2px;
         }
-
-        @media (max-width: 700px) {
-            body { padding: 10px; }
-            .stat-number { font-size: 1.2rem; }
-        }
     </style>
 </head>
 <body>
@@ -339,7 +334,7 @@
     <div class="search-panel">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar em qualquer coluna (NTE, Município, Escola, Valor...)" autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Pesquisar NTE (número), Município, Escola, Valor..." autocomplete="off">
         </div>
         <div class="filter-stats">
             <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
@@ -353,7 +348,7 @@
             <tbody id="tableBody"></tbody>
         </table>
     </div>
-    <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">Fonte: Google Sheets</footer>
+    <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">Fonte: Google Sheets | Filtro busca em NTE (número), texto e valores</footer>
 </div>
 
 <div id="modal" class="modal">
@@ -404,6 +399,15 @@
         return isNaN(num) ? 0 : num;
     }
     
+    // Função específica para converter NTE para número
+    function converterNTE(valor) {
+        if (!valor) return null;
+        // Remove qualquer caractere não numérico e converte para número
+        let numStr = valor.toString().replace(/[^\d]/g, '');
+        let num = parseInt(numStr, 10);
+        return isNaN(num) ? null : num;
+    }
+    
     function formatarMoeda(valor) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
     }
@@ -416,35 +420,58 @@
         return soma;
     }
     
-    // CRIA TEXTO PARA BUSCA - SIMPLES E RÁPIDO
+    // CRIA TEXTO PARA BUSCA - FOCANDO NO NTE COMO NÚMERO
     function criarTextoBusca(linha) {
         let texto = '';
-        // Força inclusão do NTE de forma explícita
-        if (linha.NTE) {
-            texto += linha.NTE.toString() + ' ';
-            // Adiciona versão numérica pura
-            let numNTE = parseInt(linha.NTE);
-            if (!isNaN(numNTE)) texto += numNTE + ' ';
+        
+        // TRATAMENTO ESPECIAL PARA NTE (NÚMERO)
+        if (linha.NTE !== undefined && linha.NTE !== null && linha.NTE !== '') {
+            let nteOriginal = linha.NTE.toString().trim();
+            let nteNumero = converterNTE(nteOriginal);
+            
+            // Adiciona várias representações do NTE para garantir busca
+            texto += nteOriginal + ' '; // texto original
+            if (nteNumero !== null) {
+                texto += nteNumero + ' '; // número puro
+                texto += nteNumero.toString() + ' '; // string do número
+            }
+            // Adiciona versão sem zeros à esquerda
+            let nteSemZero = parseInt(nteOriginal);
+            if (!isNaN(nteSemZero)) {
+                texto += nteSemZero + ' ';
+            }
         }
+        
         // Adiciona todas as outras colunas
         for (let i = 1; i < COLUNAS.length; i++) {
             let valor = linha[COLUNAS[i]];
-            if (valor) texto += valor.toString() + ' ';
+            if (valor) {
+                texto += valor.toString().toLowerCase() + ' ';
+            }
         }
+        
         return texto.toLowerCase();
     }
     
     // PREPARA DADOS
     function prepararDados(dados) {
         for (let i = 0; i < dados.length; i++) {
+            // Converte NTE para número e guarda
+            let nteOriginal = dados[i].NTE;
+            dados[i]._nteNumero = converterNTE(nteOriginal);
+            dados[i]._nteOriginal = nteOriginal ? nteOriginal.toString().trim() : '';
+            
+            // Valores financeiros
             dados[i]._custeio = extrairNumero(dados[i]['Valor custeio']);
             dados[i]._capital = extrairNumero(dados[i]['Valor capital']);
+            
+            // Texto para busca (já inclui NTE de várias formas)
             dados[i]._busca = criarTextoBusca(dados[i]);
         }
         return dados;
     }
     
-    // FILTRO - DIRETO E SIMPLES
+    // FILTRO - BUSCA ESPECÍFICA PARA NTE NÚMERICO
     function filtrarDados(termo) {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
@@ -455,10 +482,27 @@
                 dadosFiltrados = [...dadosCompletos];
             } else {
                 let termoLower = termo.trim().toLowerCase();
+                let termoNumero = parseInt(termo.trim());
                 let resultado = [];
+                
                 for (let i = 0; i < dadosCompletos.length; i++) {
-                    if (dadosCompletos[i]._busca.includes(termoLower)) {
-                        resultado.push(dadosCompletos[i]);
+                    let item = dadosCompletos[i];
+                    let encontrou = false;
+                    
+                    // Busca normal no texto
+                    if (item._busca.includes(termoLower)) {
+                        encontrou = true;
+                    }
+                    
+                    // Busca específica por NTE como número
+                    if (!encontrou && termoNumero && !isNaN(termoNumero)) {
+                        if (item._nteNumero === termoNumero) {
+                            encontrou = true;
+                        }
+                    }
+                    
+                    if (encontrou) {
+                        resultado.push(item);
                     }
                 }
                 dadosFiltrados = resultado;
@@ -472,10 +516,13 @@
             
             let fim = performance.now();
             console.log(`🔍 Filtro "${termo}": ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
+            if (dadosFiltrados.length > 0) {
+                console.log(`📊 Exemplo NTE encontrado: ${dadosFiltrados[0]._nteOriginal} (número: ${dadosFiltrados[0]._nteNumero})`);
+            }
         }, 30);
     }
     
-    // RENDERIZAÇÃO - DIRETA E RÁPIDA
+    // RENDERIZAÇÃO
     function renderizarTabela(dados, termo = '') {
         requestAnimationFrame(() => {
             // Cabeçalho
@@ -501,13 +548,18 @@
                 let linha = dados[i];
                 let tr = document.createElement('tr');
                 
-                // NTE (primeira coluna)
+                // NTE - Exibe como número
                 let tdNTE = document.createElement('td');
-                let nteValor = linha.NTE ? linha.NTE.toString() : '';
-                if (regex && nteValor) {
-                    tdNTE.innerHTML = nteValor.replace(regex, '<mark>$1</mark>');
+                let nteExibir = linha._nteOriginal || '';
+                // Destaca se o termo for número e igual ao NTE
+                let termoNum = parseInt(termo);
+                if (termo && !isNaN(termoNum) && linha._nteNumero === termoNum) {
+                    tdNTE.innerHTML = `<mark>${nteExibir}</mark>`;
+                } else if (regex && nteExibir && regex.test(nteExibir)) {
+                    regex.lastIndex = 0;
+                    tdNTE.innerHTML = nteExibir.replace(regex, '<mark>$1</mark>');
                 } else {
-                    tdNTE.innerText = nteValor;
+                    tdNTE.innerText = nteExibir;
                 }
                 tr.appendChild(tdNTE);
                 
@@ -613,13 +665,11 @@
             return prepararDados(dados);
         } catch (err) {
             console.log('Erro na busca principal, tentando fallback...');
-            // Fallback
             let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
             let response = await fetch(url);
             let csv = await response.text();
             let linhas = parseCSV(csv);
             let dados = [];
-            // Pula as 2 primeiras linhas
             for (let i = 2; i < linhas.length; i++) {
                 let linha = linhas[i];
                 if (linha.length < 2) continue;
@@ -670,7 +720,6 @@
         
         abaAtual = tabId;
         
-        // Atualiza botões
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
         });
@@ -697,7 +746,7 @@
         mostrarLoading(false);
         
         console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros`);
-        console.log(`📊 Exemplo NTE: "${dadosCompletos[0]?.NTE}"`);
+        console.log(`📊 Exemplo NTE: "${dadosCompletos[0]?.NTE}" (convertido para número: ${dadosCompletos[0]?._nteNumero})`);
     }
     
     function renderizarAbas() {
