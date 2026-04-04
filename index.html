@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>CDF - Manutenção / FAED / PNAE | Filtro Rápido</title>
-    <!-- Google Fonts + Font Awesome -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -56,7 +55,6 @@
             margin-top: 6px;
         }
 
-        /* APENAS DOIS CARDS */
         .stats-duo {
             display: flex;
             gap: 32px;
@@ -85,7 +83,6 @@
             line-height: 1.2;
         }
 
-        /* Abas expansíveis */
         .tabs-wrapper {
             margin-bottom: 24px;
             overflow-x: auto;
@@ -128,7 +125,6 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
 
-        /* Botão para adicionar nova aba */
         .add-tab-btn {
             background: #eef2f7;
             border: 1px dashed #8ba3bc;
@@ -149,7 +145,6 @@
             border-color: #1f5780;
         }
 
-        /* Barra de pesquisa */
         .search-panel {
             background: white;
             border-radius: 20px;
@@ -244,6 +239,8 @@
             border: 1px solid #eef3f8;
             overflow-x: auto;
             box-shadow: 0 6px 14px rgba(0,0,0,0.02);
+            max-height: 65vh;
+            overflow-y: auto;
         }
 
         .data-table {
@@ -262,6 +259,10 @@
             border-bottom: 1px solid #e5edf5;
             font-size: 0.75rem;
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
         }
 
         .data-table td {
@@ -293,7 +294,6 @@
             color: #8ba0bc;
         }
 
-        /* Modal para adicionar aba */
         .modal {
             display: none;
             position: fixed;
@@ -306,6 +306,7 @@
             align-items: center;
             z-index: 1000;
         }
+        
         .modal-content {
             background: white;
             border-radius: 28px;
@@ -314,10 +315,12 @@
             max-width: 90%;
             box-shadow: 0 20px 35px rgba(0,0,0,0.2);
         }
+        
         .modal-content h3 {
             margin-bottom: 20px;
             color: #1f4970;
         }
+        
         .modal-content input {
             width: 100%;
             padding: 12px;
@@ -326,11 +329,13 @@
             border-radius: 12px;
             font-family: 'Inter', sans-serif;
         }
+        
         .modal-buttons {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
         }
+        
         .modal-buttons button {
             padding: 8px 20px;
             border-radius: 40px;
@@ -338,12 +343,49 @@
             cursor: pointer;
             font-weight: 600;
         }
+        
         .btn-confirm {
             background: #1f5780;
             color: white;
         }
+        
         .btn-cancel {
             background: #e2e8f0;
+        }
+
+        .loading-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1f5780;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .loading-indicator.show {
+            display: flex;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fa-spinner {
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Destaque para o termo pesquisado */
+        .search-highlight {
+            background-color: #fff3cd;
+            font-weight: 600;
         }
 
         @media (max-width: 750px) {
@@ -355,11 +397,17 @@
     </style>
 </head>
 <body>
+
+<div class="loading-indicator" id="loadingIndicator">
+    <i class="fas fa-spinner"></i>
+    <span>Carregando...</span>
+</div>
+
 <div class="dashboard-container">
     <div class="main-header">
         <div class="title-area">
             <h1><i class="fas fa-chalkboard-user"></i> Pesquisar CDF</h1>
-            <p>Dados dinâmicos · Filtro automático em qualquer coluna</p>
+            <p>Dados dinâmicos · Filtro ultrarrápido em qualquer coluna</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
@@ -375,7 +423,6 @@
 
     <div class="tabs-wrapper">
         <div class="tabs-list" id="tabsList">
-            <!-- Abas serão geradas dinamicamente -->
             <button class="tab-btn active" data-tab="default_0"><i class="fas fa-chart-line"></i> GeradorManut</button>
             <button class="add-tab-btn" id="addTabBtn"><i class="fas fa-plus"></i> Nova Consulta</button>
         </div>
@@ -388,7 +435,7 @@
             </div>
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="globalSearch" placeholder="Pesquisa instantânea em qualquer coluna (NTE, Município, Código, Escola, Valor, Finalidade...)">
+                <input type="text" id="globalSearch" placeholder="Pesquisa instantânea em qualquer coluna (NTE, Município, Código, Escola, Valor, Finalidade...)" autocomplete="off">
             </div>
         </div>
         <div class="filter-stats">
@@ -410,7 +457,6 @@
     <footer>Fonte: Google Sheets · Dados iniciando na linha 3 de cada aba · Filtro automático em todas as colunas</footer>
 </div>
 
-<!-- Modal para adicionar nova aba -->
 <div id="tabModal" class="modal">
     <div class="modal-content">
         <h3><i class="fas fa-plus-circle"></i> Nova consulta</h3>
@@ -424,16 +470,13 @@
 </div>
 
 <script>
-    // NOVA CONFIGURAÇÃO: Google Sheets ID fornecido
     const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
     
-    // Colunas exatas da planilha (A até J conforme imagem)
     const FULL_COLUMNS = [
         'NTE', 'Municipio', 'Cod. SEC', 'Cod. INEP', 'Unidade Escolar', 
         'Valor custeio', 'Valor capital', 'Remessa', 'Data da remessa', 'Finalidade'
     ];
     
-    // Estrutura de abas dinâmica: array de objetos { id, sheetName, label }
     let tabsConfig = [
         { id: 'tab_0', sheetName: 'GeradorManut', label: 'GeradorManut' }
     ];
@@ -441,8 +484,9 @@
     let currentTabId = 'tab_0';
     let fullData = [];
     let filteredData = [];
+    let filterTimeout = null;
+    let currentSearchTerm = '';
     
-    // DOM elements
     const searchInput = document.getElementById('globalSearch');
     const filteredRecordsSpan = document.getElementById('filteredRecords');
     const filteredValueSpan = document.getElementById('filteredValue');
@@ -456,11 +500,268 @@
     const modal = document.getElementById('tabModal');
     const newSheetNameInput = document.getElementById('newSheetName');
     const newTabLabelInput = document.getElementById('newTabLabel');
+    const loadingIndicator = document.getElementById('loadingIndicator');
     
-    // ========== FUNÇÕES DE BUSCA (linha 3 em diante) ==========
+    function showLoading(show) {
+        if (show) {
+            loadingIndicator.classList.add('show');
+        } else {
+            loadingIndicator.classList.remove('show');
+        }
+    }
+    
+    function extractNumericValue(value) {
+        if (value === undefined || value === null) return 0;
+        let str = value.toString().trim();
+        if (str === "") return 0;
+        let cleaned = str.replace(/R\$/, '').replace(/€/g, '').trim();
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        const numeric = parseFloat(cleaned.replace(/[^\d.-]/g, ''));
+        return isNaN(numeric) ? 0 : numeric;
+    }
+    
+    function formatBRL(value) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 }).format(value);
+    }
+    
+    function formatAsInteger(value) {
+        if (value === undefined || value === null) return '';
+        let str = value.toString().trim();
+        const numericMatch = str.match(/-?\d+/);
+        if (numericMatch) return parseInt(numericMatch[0], 10).toString();
+        return str;
+    }
+    
+    function sumTotalFromData(data) {
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            sum += (row._custeioNum || 0) + (row._capitalNum || 0);
+        }
+        return sum;
+    }
+    
+    // Função melhorada para criar texto de busca incluindo TODAS as colunas
+    function createSearchText(row) {
+        const searchParts = [];
+        
+        // Adiciona cada coluna individualmente, garantindo que NTE seja incluído
+        for (let i = 0; i < FULL_COLUMNS.length; i++) {
+            const colName = FULL_COLUMNS[i];
+            let value = row[colName];
+            
+            if (value !== undefined && value !== null && value !== '') {
+                // Converte para string e remove espaços extras
+                let strValue = value.toString().trim();
+                
+                // Para NTE, garante que números sejam tratados corretamente
+                if (colName === 'NTE') {
+                    // Extrai apenas números para busca numérica
+                    const numbers = strValue.match(/\d+/g);
+                    if (numbers) {
+                        searchParts.push(numbers.join(''));
+                    }
+                }
+                
+                searchParts.push(strValue.toLowerCase());
+            }
+        }
+        
+        // Também adiciona valores numéricos formatados para busca
+        if (row._custeioNum > 0) {
+            searchParts.push(row._custeioNum.toString());
+            searchParts.push(formatBRL(row._custeioNum).toLowerCase());
+        }
+        if (row._capitalNum > 0) {
+            searchParts.push(row._capitalNum.toString());
+            searchParts.push(formatBRL(row._capitalNum).toLowerCase());
+        }
+        
+        return searchParts.join(' ');
+    }
+    
+    // Pré-processa os dados para busca rápida
+    function prepareDataForSearch(data) {
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            // Pré-calcula valores numéricos
+            row._custeioNum = extractNumericValue(row['Valor custeio']);
+            row._capitalNum = extractNumericValue(row['Valor capital']);
+            
+            // Cria texto de busca completo
+            row._searchText = createSearchText(row);
+            
+            // Debug: mostra o texto de busca para verificar se NTE está incluído
+            if (i < 3) {
+                console.log(`Linha ${i} - NTE: "${row['NTE']}" - SearchText: "${row._searchText.substring(0, 100)}"`);
+            }
+        }
+        return data;
+    }
+    
+    // Filtro melhorado - busca em todas as colunas incluindo NTE
+    function applyFilter(term) {
+        if (filterTimeout) {
+            clearTimeout(filterTimeout);
+        }
+        
+        filterTimeout = setTimeout(() => {
+            const startTime = performance.now();
+            currentSearchTerm = term;
+            
+            if (!term.trim()) {
+                filteredData = [...fullData];
+            } else {
+                const lowerTerm = term.trim().toLowerCase();
+                const filtered = [];
+                
+                for (let i = 0; i < fullData.length; i++) {
+                    const row = fullData[i];
+                    // Busca no texto pré-processado que contém TODAS as colunas
+                    if (row._searchText && row._searchText.includes(lowerTerm)) {
+                        filtered.push(row);
+                    }
+                }
+                filteredData = filtered;
+            }
+            
+            const filteredSum = sumTotalFromData(filteredData);
+            filteredRecordsSpan.innerText = filteredData.length.toLocaleString('pt-BR');
+            filteredValueSpan.innerText = formatBRL(filteredSum);
+            
+            renderTableFast(filteredData, term.trim());
+            
+            const endTime = performance.now();
+            console.log(`Filtro "${term}" executado em ${(endTime - startTime).toFixed(2)}ms - ${filteredData.length} registros encontrados`);
+        }, 50);
+    }
+    
+    // Função para destacar o termo pesquisado
+    function highlightText(text, searchTerm) {
+        if (!searchTerm || !text) return text;
+        const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.toString().replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+    
+    // Renderização rápida
+    function renderTableFast(data, searchTerm = '') {
+        requestAnimationFrame(() => {
+            if (!FULL_COLUMNS.length) {
+                tableHead.innerHTML = '<tr><th>Sem colunas</th></tr>';
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="1">Nenhum dado disponível</td></tr>';
+                return;
+            }
+            
+            // Cabeçalho
+            if (tableHead.children.length === 0) {
+                const headerRow = document.createElement('tr');
+                FULL_COLUMNS.forEach(col => {
+                    const th = document.createElement('th');
+                    th.innerText = col;
+                    headerRow.appendChild(th);
+                });
+                tableHead.appendChild(headerRow);
+            }
+            
+            if (data.length === 0) {
+                const emptyRow = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = FULL_COLUMNS.length;
+                td.className = 'empty-message';
+                td.innerHTML = searchTerm ? 
+                    `Nenhum registro encontrado para "<strong>${searchTerm}</strong>"` : 
+                    'Nenhum registro encontrado';
+                emptyRow.appendChild(td);
+                tableBody.innerHTML = '';
+                tableBody.appendChild(emptyRow);
+                return;
+            }
+            
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                const tr = document.createElement('tr');
+                
+                // NTE (Coluna A) - agora com highlight
+                const tdNTE = document.createElement('td');
+                const nteValue = formatAsInteger(row['NTE']);
+                tdNTE.innerHTML = searchTerm ? highlightText(nteValue, searchTerm) : nteValue;
+                tr.appendChild(tdNTE);
+                
+                // Municipio
+                const tdMun = document.createElement('td');
+                const munValue = row['Municipio'] || '';
+                tdMun.innerHTML = searchTerm ? highlightText(munValue, searchTerm) : munValue;
+                tr.appendChild(tdMun);
+                
+                // Cod. SEC
+                const tdCodSec = document.createElement('td');
+                const codSecValue = row['Cod. SEC'] || '';
+                tdCodSec.innerHTML = searchTerm ? highlightText(codSecValue, searchTerm) : codSecValue;
+                tr.appendChild(tdCodSec);
+                
+                // Cod. INEP
+                const tdCodInep = document.createElement('td');
+                const codInepValue = row['Cod. INEP'] || '';
+                tdCodInep.innerHTML = searchTerm ? highlightText(codInepValue, searchTerm) : codInepValue;
+                tr.appendChild(tdCodInep);
+                
+                // Unidade Escolar
+                const tdEscola = document.createElement('td');
+                const escolaValue = row['Unidade Escolar'] || '';
+                tdEscola.innerHTML = searchTerm ? highlightText(escolaValue, searchTerm) : escolaValue;
+                tr.appendChild(tdEscola);
+                
+                // Valor custeio
+                const tdCusteio = document.createElement('td');
+                const custeioFormatted = formatBRL(row._custeioNum);
+                tdCusteio.innerHTML = searchTerm ? highlightText(custeioFormatted, searchTerm) : custeioFormatted;
+                tdCusteio.className = 'valor-highlight';
+                tr.appendChild(tdCusteio);
+                
+                // Valor capital
+                const tdCapital = document.createElement('td');
+                const capitalFormatted = formatBRL(row._capitalNum);
+                tdCapital.innerHTML = searchTerm ? highlightText(capitalFormatted, searchTerm) : capitalFormatted;
+                tdCapital.className = 'valor-highlight';
+                tr.appendChild(tdCapital);
+                
+                // Remessa
+                const tdRemessa = document.createElement('td');
+                const remessaValue = row['Remessa'] || '';
+                tdRemessa.innerHTML = searchTerm ? highlightText(remessaValue, searchTerm) : remessaValue;
+                tr.appendChild(tdRemessa);
+                
+                // Data da remessa
+                const tdData = document.createElement('td');
+                const dataValue = row['Data da remessa'] || '';
+                tdData.innerHTML = searchTerm ? highlightText(dataValue, searchTerm) : dataValue;
+                tr.appendChild(tdData);
+                
+                // Finalidade
+                const tdFinalidade = document.createElement('td');
+                const finalidadeValue = row['Finalidade'] || '';
+                tdFinalidade.innerHTML = searchTerm ? highlightText(finalidadeValue, searchTerm) : finalidadeValue;
+                tr.appendChild(tdFinalidade);
+                
+                fragment.appendChild(tr);
+            }
+            
+            tableBody.innerHTML = '';
+            tableBody.appendChild(fragment);
+        });
+    }
+    
+    function updateMainCards() {
+        const totalRegisters = fullData.length;
+        const totalSum = sumTotalFromData(fullData);
+        totalRecordsMainSpan.innerText = totalRegisters.toLocaleString('pt-BR');
+        totalValueMainSpan.innerText = formatBRL(totalSum);
+    }
+    
     async function fetchSheetData(sheetName) {
         try {
-            // Range A3:J (começa na linha 3 até o final, colunas A até J)
             const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A3:J`;
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -476,17 +777,16 @@
                 });
                 return obj;
             }).filter(row => {
-                // pelo menos um campo preenchido
                 return Object.values(row).some(v => v && v.toString().trim() !== "");
             });
-            return rows;
+            
+            return prepareDataForSearch(rows);
         } catch (err) {
             console.error(`Erro ao buscar aba ${sheetName}:`, err);
             return [];
         }
     }
     
-    // Fallback: sem range, pula as 2 primeiras linhas manualmente
     async function fetchSheetDataFallback(sheetName) {
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -504,7 +804,7 @@
                 });
                 return obj;
             }).filter(row => Object.values(row).some(v => v && v.toString().trim() !== ""));
-            return rows;
+            return prepareDataForSearch(rows);
         } catch (err) {
             console.error(`Fallback error:`, err);
             return [];
@@ -540,158 +840,6 @@
         return result;
     }
     
-    // Extrair valor numérico (formato brasileiro)
-    function extractNumericValue(value) {
-        if (value === undefined || value === null) return 0;
-        let str = value.toString().trim();
-        if (str === "") return 0;
-        let cleaned = str.replace(/R\$/, '').replace(/€/g, '').trim();
-        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-        const numeric = parseFloat(cleaned.replace(/[^\d.-]/g, ''));
-        return isNaN(numeric) ? 0 : numeric;
-    }
-    
-    // Calcular soma total (custeio + capital)
-    function sumTotalFromData(data) {
-        return data.reduce((acc, row) => {
-            const custeio = extractNumericValue(row['Valor custeio']);
-            const capital = extractNumericValue(row['Valor capital']);
-            return acc + custeio + capital;
-        }, 0);
-    }
-    
-    function formatBRL(value) {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 }).format(value);
-    }
-    
-    function formatAsInteger(value) {
-        if (value === undefined || value === null) return '';
-        let str = value.toString().trim();
-        const numericMatch = str.match(/-?\d+/);
-        if (numericMatch) return parseInt(numericMatch[0], 10).toString();
-        return str;
-    }
-    
-    // Renderizar tabela com todas as colunas
-    function renderTable(data) {
-        if (!FULL_COLUMNS.length) {
-            tableHead.innerHTML = '</table><th>Sem colunas</th></tr>';
-            tableBody.innerHTML = '<tr class="empty-message"><td colspan="1">Nenhum dado disponível</td></tr>';
-            return;
-        }
-        
-        // Cabeçalho
-        const headerRow = document.createElement('tr');
-        FULL_COLUMNS.forEach(col => {
-            const th = document.createElement('th');
-            th.innerText = col;
-            headerRow.appendChild(th);
-        });
-        tableHead.innerHTML = '';
-        tableHead.appendChild(headerRow);
-        
-        if (data.length === 0) {
-            const emptyRow = document.createElement('tr');
-            const td = document.createElement('td');
-            td.colSpan = FULL_COLUMNS.length;
-            td.className = 'empty-message';
-            td.innerText = 'Nenhum registro encontrado com o filtro atual.';
-            emptyRow.appendChild(td);
-            tableBody.innerHTML = '';
-            tableBody.appendChild(emptyRow);
-            return;
-        }
-        
-        const fragment = document.createDocumentFragment();
-        for (const row of data) {
-            const tr = document.createElement('tr');
-            // NTE (inteiro)
-            const tdNTE = document.createElement('td');
-            tdNTE.innerText = formatAsInteger(row['NTE']);
-            tr.appendChild(tdNTE);
-            
-            // Municipio
-            const tdMun = document.createElement('td');
-            tdMun.innerText = row['Municipio'] || '';
-            tr.appendChild(tdMun);
-            
-            // Cod. SEC
-            const tdCodSec = document.createElement('td');
-            tdCodSec.innerText = row['Cod. SEC'] || '';
-            tr.appendChild(tdCodSec);
-            
-            // Cod. INEP
-            const tdCodInep = document.createElement('td');
-            tdCodInep.innerText = row['Cod. INEP'] || '';
-            tr.appendChild(tdCodInep);
-            
-            // Unidade Escolar
-            const tdEscola = document.createElement('td');
-            tdEscola.innerText = row['Unidade Escolar'] || '';
-            tr.appendChild(tdEscola);
-            
-            // Valor custeio (formatado)
-            const tdCusteio = document.createElement('td');
-            const custeioVal = extractNumericValue(row['Valor custeio']);
-            tdCusteio.innerText = formatBRL(custeioVal);
-            tdCusteio.className = 'valor-highlight';
-            tr.appendChild(tdCusteio);
-            
-            // Valor capital (formatado)
-            const tdCapital = document.createElement('td');
-            const capitalVal = extractNumericValue(row['Valor capital']);
-            tdCapital.innerText = formatBRL(capitalVal);
-            tdCapital.className = 'valor-highlight';
-            tr.appendChild(tdCapital);
-            
-            // Remessa
-            const tdRemessa = document.createElement('td');
-            tdRemessa.innerText = row['Remessa'] || '';
-            tr.appendChild(tdRemessa);
-            
-            // Data da remessa
-            const tdData = document.createElement('td');
-            tdData.innerText = row['Data da remessa'] || '';
-            tr.appendChild(tdData);
-            
-            // Finalidade
-            const tdFinalidade = document.createElement('td');
-            tdFinalidade.innerText = row['Finalidade'] || '';
-            tr.appendChild(tdFinalidade);
-            
-            fragment.appendChild(tr);
-        }
-        tableBody.innerHTML = '';
-        tableBody.appendChild(fragment);
-    }
-    
-    // Filtro automático em qualquer coluna
-    function applyFilter(term) {
-        if (!term.trim()) {
-            filteredData = [...fullData];
-        } else {
-            const lowerTerm = term.trim().toLowerCase();
-            filteredData = fullData.filter(row => {
-                return Object.values(row).some(cell => {
-                    if (cell === undefined || cell === null) return false;
-                    return cell.toString().toLowerCase().includes(lowerTerm);
-                });
-            });
-        }
-        const filteredSum = sumTotalFromData(filteredData);
-        filteredRecordsSpan.innerText = filteredData.length.toLocaleString('pt-BR');
-        filteredValueSpan.innerText = formatBRL(filteredSum);
-        renderTable(filteredData);
-    }
-    
-    function updateMainCards() {
-        const totalRegisters = fullData.length;
-        const totalSum = sumTotalFromData(fullData);
-        totalRecordsMainSpan.innerText = totalRegisters.toLocaleString('pt-BR');
-        totalValueMainSpan.innerText = formatBRL(totalSum);
-    }
-    
-    // Carregar aba específica
     async function loadTab(tabId) {
         const tab = tabsConfig.find(t => t.id === tabId);
         if (!tab) return;
@@ -699,7 +847,6 @@
         currentTabId = tabId;
         activeSheetNameSpan.innerText = tab.label;
         
-        // Atualizar classe active nos botões
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             if (btn.getAttribute('data-tab') === tabId) {
                 btn.classList.add('active');
@@ -708,8 +855,9 @@
             }
         });
         
-        // Mostrar loading
-        tableHead.innerHTML = '<tr><th>🔄 Carregando...</th></tr>';
+        showLoading(true);
+        
+        tableHead.innerHTML = '';
         tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Aguarde, carregando dados da planilha...</td></tr>';
         filteredRecordsSpan.innerText = '0';
         filteredValueSpan.innerText = formatBRL(0);
@@ -726,6 +874,7 @@
             tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">Nenhum dado encontrado na aba "${tab.sheetName}". Verifique se a planilha contém dados a partir da linha 3 (colunas A-J).</td></tr>`;
             totalRecordsMainSpan.innerText = '0';
             totalValueMainSpan.innerText = formatBRL(0);
+            showLoading(false);
             return;
         }
         
@@ -733,9 +882,14 @@
         searchInput.value = '';
         applyFilter('');
         updateMainCards();
+        showLoading(false);
+        
+        console.log(`Aba "${tab.sheetName}" carregada com ${fullData.length} registros`);
+        if (fullData.length > 0) {
+            console.log(`Exemplo de NTE: "${fullData[0]['NTE']}"`);
+        }
     }
     
-    // Renderizar abas na interface
     function renderTabs() {
         const buttons = [];
         tabsConfig.forEach(tab => {
@@ -750,11 +904,10 @@
             });
             buttons.push(btn);
         });
-        // Botão de adicionar
+        
         const addBtn = document.createElement('button');
         addBtn.className = 'add-tab-btn';
         addBtn.innerHTML = '<i class="fas fa-plus"></i> Nova Consulta';
-        addBtn.id = 'addTabBtn';
         addBtn.onclick = () => { modal.style.display = 'flex'; };
         
         tabsList.innerHTML = '';
@@ -762,7 +915,6 @@
         tabsList.appendChild(addBtn);
     }
     
-    // Adicionar nova aba
     function addNewTab(sheetName, tabLabel) {
         if (!sheetName.trim()) {
             alert('Informe o nome da aba na planilha');
@@ -775,21 +927,23 @@
             label: tabLabel.trim() || sheetName.trim()
         });
         renderTabs();
-        // Carregar a nova aba automaticamente
         loadTab(newId);
         return true;
     }
     
-    // Eventos de modal
     function setupModal() {
-        addTabBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'addTabBtn' || e.target.closest('#addTabBtn')) {
+                modal.style.display = 'flex';
+            }
         });
+        
         document.getElementById('cancelModalBtn').addEventListener('click', () => {
             modal.style.display = 'none';
             newSheetNameInput.value = '';
             newTabLabelInput.value = '';
         });
+        
         document.getElementById('confirmModalBtn').addEventListener('click', () => {
             const sheet = newSheetNameInput.value.trim();
             const label = newTabLabelInput.value.trim();
@@ -802,19 +956,15 @@
             newSheetNameInput.value = '';
             newTabLabelInput.value = '';
         });
+        
         window.addEventListener('click', (e) => {
             if (e.target === modal) modal.style.display = 'none';
         });
     }
     
-    // Busca com debounce
-    let debounceTimer;
     function setupSearch() {
         searchInput.addEventListener('input', (e) => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                applyFilter(e.target.value);
-            }, 50);
+            applyFilter(e.target.value);
         });
     }
     
