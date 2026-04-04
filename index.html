@@ -300,6 +300,11 @@
             padding: 0 2px;
             border-radius: 2px;
         }
+
+        .nte-highlight {
+            font-weight: 700;
+            color: #1f5780;
+        }
     </style>
 </head>
 <body>
@@ -310,7 +315,7 @@
     <div class="main-header">
         <div class="title-area">
             <h1>🔍 Pesquisar CDF</h1>
-            <p>Filtro rápido em todas as colunas</p>
+            <p>Filtro rápido - Busque NTE (01, 02, 03... até 27)</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
@@ -334,7 +339,7 @@
     <div class="search-panel">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar NTE (número), Município, Escola, Valor..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Pesquisar NTE (ex: 01, 02, 10, 21), Município, Escola..." autocomplete="off">
         </div>
         <div class="filter-stats">
             <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
@@ -348,7 +353,9 @@
             <tbody id="tableBody"></tbody>
         </table>
     </div>
-    <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">Fonte: Google Sheets | Filtro busca em NTE (número), texto e valores</footer>
+    <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
+        Fonte: Google Sheets | Dica: pesquise NTE como 01, 02, 03... ou apenas 1, 2, 3...
+    </footer>
 </div>
 
 <div id="modal" class="modal">
@@ -399,13 +406,27 @@
         return isNaN(num) ? 0 : num;
     }
     
-    // Função específica para converter NTE para número
-    function converterNTE(valor) {
-        if (!valor) return null;
-        // Remove qualquer caractere não numérico e converte para número
-        let numStr = valor.toString().replace(/[^\d]/g, '');
-        let num = parseInt(numStr, 10);
-        return isNaN(num) ? null : num;
+    // Função para tratar NTE com zero à esquerda (01, 02, 03...)
+    function tratarNTE(valor) {
+        if (!valor || valor === '') return { original: '', numero: null, string: '' };
+        
+        let original = valor.toString().trim();
+        let string = original;
+        let numero = null;
+        
+        // Tenta converter para número inteiro
+        let numParse = parseInt(original, 10);
+        if (!isNaN(numParse)) {
+            numero = numParse;
+            // Formata com zero à esquerda se for de 1 a 9
+            if (numero >= 1 && numero <= 9) {
+                string = '0' + numero;
+            } else {
+                string = numero.toString();
+            }
+        }
+        
+        return { original, numero, string };
     }
     
     function formatarMoeda(valor) {
@@ -420,25 +441,24 @@
         return soma;
     }
     
-    // CRIA TEXTO PARA BUSCA - FOCANDO NO NTE COMO NÚMERO
+    // CRIA TEXTO PARA BUSCA - ESPECIAL PARA NTE COM ZERO À ESQUERDA
     function criarTextoBusca(linha) {
         let texto = '';
         
-        // TRATAMENTO ESPECIAL PARA NTE (NÚMERO)
+        // TRATAMENTO ESPECIAL PARA NTE
         if (linha.NTE !== undefined && linha.NTE !== null && linha.NTE !== '') {
             let nteOriginal = linha.NTE.toString().trim();
-            let nteNumero = converterNTE(nteOriginal);
+            let nteNumero = parseInt(nteOriginal, 10);
             
-            // Adiciona várias representações do NTE para garantir busca
-            texto += nteOriginal + ' '; // texto original
-            if (nteNumero !== null) {
-                texto += nteNumero + ' '; // número puro
-                texto += nteNumero.toString() + ' '; // string do número
-            }
-            // Adiciona versão sem zeros à esquerda
-            let nteSemZero = parseInt(nteOriginal);
-            if (!isNaN(nteSemZero)) {
-                texto += nteSemZero + ' ';
+            // Adiciona TODAS as representações possíveis do NTE
+            texto += nteOriginal + ' '; // "01", "02", etc.
+            
+            if (!isNaN(nteNumero)) {
+                texto += nteNumero + ' '; // 1, 2, 3...
+                // Adiciona com zero à esquerda se for de 1 a 9
+                if (nteNumero >= 1 && nteNumero <= 9) {
+                    texto += '0' + nteNumero + ' '; // "01", "02"...
+                }
             }
         }
         
@@ -456,22 +476,51 @@
     // PREPARA DADOS
     function prepararDados(dados) {
         for (let i = 0; i < dados.length; i++) {
-            // Converte NTE para número e guarda
-            let nteOriginal = dados[i].NTE;
-            dados[i]._nteNumero = converterNTE(nteOriginal);
-            dados[i]._nteOriginal = nteOriginal ? nteOriginal.toString().trim() : '';
+            // Trata NTE
+            let nteInfo = tratarNTE(dados[i].NTE);
+            dados[i]._nteOriginal = nteInfo.original;
+            dados[i]._nteNumero = nteInfo.numero;
+            dados[i]._nteString = nteInfo.string;
             
             // Valores financeiros
             dados[i]._custeio = extrairNumero(dados[i]['Valor custeio']);
             dados[i]._capital = extrairNumero(dados[i]['Valor capital']);
             
-            // Texto para busca (já inclui NTE de várias formas)
+            // Texto para busca
             dados[i]._busca = criarTextoBusca(dados[i]);
         }
         return dados;
     }
     
-    // FILTRO - BUSCA ESPECÍFICA PARA NTE NÚMERICO
+    // VERIFICA SE O NTE CORRESPONDE AO TERMO PESQUISADO
+    function nteCorresponde(nteInfo, termoPesquisa) {
+        if (!nteInfo || !termoPesquisa) return false;
+        
+        let termo = termoPesquisa.toString().trim();
+        let termoNumero = parseInt(termo, 10);
+        let termoString = termo;
+        
+        // Se o termo tem zero à esquerda (ex: "01")
+        if (termo.length === 2 && termo[0] === '0') {
+            let numTermo = parseInt(termo, 10);
+            if (!isNaN(numTermo)) {
+                // Compara com a string do NTE (que pode ser "01" ou "1")
+                if (nteInfo.string === termo || nteInfo.original === termo) return true;
+                if (nteInfo.numero === numTermo) return true;
+            }
+        }
+        
+        // Compara como número
+        if (!isNaN(termoNumero) && nteInfo.numero === termoNumero) return true;
+        
+        // Compara como string
+        if (nteInfo.original === termoString) return true;
+        if (nteInfo.string === termoString) return true;
+        
+        return false;
+    }
+    
+    // FILTRO RÁPIDO
     function filtrarDados(termo) {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
@@ -482,7 +531,6 @@
                 dadosFiltrados = [...dadosCompletos];
             } else {
                 let termoLower = termo.trim().toLowerCase();
-                let termoNumero = parseInt(termo.trim());
                 let resultado = [];
                 
                 for (let i = 0; i < dadosCompletos.length; i++) {
@@ -494,9 +542,9 @@
                         encontrou = true;
                     }
                     
-                    // Busca específica por NTE como número
-                    if (!encontrou && termoNumero && !isNaN(termoNumero)) {
-                        if (item._nteNumero === termoNumero) {
+                    // Busca específica por NTE
+                    if (!encontrou) {
+                        if (nteCorresponde({ numero: item._nteNumero, original: item._nteOriginal, string: item._nteString }, termo)) {
                             encontrou = true;
                         }
                     }
@@ -516,10 +564,7 @@
             
             let fim = performance.now();
             console.log(`🔍 Filtro "${termo}": ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
-            if (dadosFiltrados.length > 0) {
-                console.log(`📊 Exemplo NTE encontrado: ${dadosFiltrados[0]._nteOriginal} (número: ${dadosFiltrados[0]._nteNumero})`);
-            }
-        }, 30);
+        }, 20); // Debounce mais rápido: 20ms
     }
     
     // RENDERIZAÇÃO
@@ -542,22 +587,27 @@
             }
             
             let fragment = document.createDocumentFragment();
-            let regex = termo ? new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi') : null;
             
             for (let i = 0; i < dados.length; i++) {
                 let linha = dados[i];
                 let tr = document.createElement('tr');
                 
-                // NTE - Exibe como número
+                // NTE - Exibe formatado
                 let tdNTE = document.createElement('td');
-                let nteExibir = linha._nteOriginal || '';
-                // Destaca se o termo for número e igual ao NTE
+                let nteExibir = linha._nteString || linha._nteOriginal || '';
+                // Verifica se o termo corresponde a este NTE
                 let termoNum = parseInt(termo);
-                if (termo && !isNaN(termoNum) && linha._nteNumero === termoNum) {
-                    tdNTE.innerHTML = `<mark>${nteExibir}</mark>`;
-                } else if (regex && nteExibir && regex.test(nteExibir)) {
-                    regex.lastIndex = 0;
-                    tdNTE.innerHTML = nteExibir.replace(regex, '<mark>$1</mark>');
+                let termoStr = termo.toString();
+                let destacaNTE = false;
+                
+                if (termo) {
+                    if (linha._nteNumero === termoNum && !isNaN(termoNum)) destacaNTE = true;
+                    if (linha._nteString === termoStr) destacaNTE = true;
+                    if (linha._nteOriginal === termoStr) destacaNTE = true;
+                }
+                
+                if (destacaNTE) {
+                    tdNTE.innerHTML = `<mark class="nte-highlight">${nteExibir}</mark>`;
                 } else {
                     tdNTE.innerText = nteExibir;
                 }
@@ -565,12 +615,7 @@
                 
                 // Municipio
                 let tdMun = document.createElement('td');
-                let munValor = linha.Municipio || '';
-                if (regex && munValor) {
-                    tdMun.innerHTML = munValor.replace(regex, '<mark>$1</mark>');
-                } else {
-                    tdMun.innerText = munValor;
-                }
+                tdMun.innerText = linha.Municipio || '';
                 tr.appendChild(tdMun);
                 
                 // Cod. SEC
@@ -585,12 +630,7 @@
                 
                 // Unidade Escolar
                 let tdEscola = document.createElement('td');
-                let escolaValor = linha['Unidade Escolar'] || '';
-                if (regex && escolaValor) {
-                    tdEscola.innerHTML = escolaValor.replace(regex, '<mark>$1</mark>');
-                } else {
-                    tdEscola.innerText = escolaValor;
-                }
+                tdEscola.innerText = linha['Unidade Escolar'] || '';
                 tr.appendChild(tdEscola);
                 
                 // Valor custeio
@@ -617,12 +657,7 @@
                 
                 // Finalidade
                 let tdFinal = document.createElement('td');
-                let finalValor = linha.Finalidade || '';
-                if (regex && finalValor) {
-                    tdFinal.innerHTML = finalValor.replace(regex, '<mark>$1</mark>');
-                } else {
-                    tdFinal.innerText = finalValor;
-                }
+                tdFinal.innerText = linha.Finalidade || '';
                 tr.appendChild(tdFinal);
                 
                 fragment.appendChild(tr);
@@ -657,7 +692,6 @@
                 for (let j = 0; j < COLUNAS.length; j++) {
                     obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
                 }
-                // Verifica se tem dados relevantes
                 if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
                     dados.push(obj);
                 }
@@ -745,8 +779,10 @@
         atualizarCards();
         mostrarLoading(false);
         
+        // Mostra exemplos de NTE carregados
+        let ntes = [...new Set(dadosCompletos.map(d => d._nteString).filter(n => n))].slice(0, 10);
         console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros`);
-        console.log(`📊 Exemplo NTE: "${dadosCompletos[0]?.NTE}" (convertido para número: ${dadosCompletos[0]?._nteNumero})`);
+        console.log(`📊 NTEs encontrados: ${ntes.join(', ')}...`);
     }
     
     function renderizarAbas() {
