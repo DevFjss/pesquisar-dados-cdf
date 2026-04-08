@@ -331,8 +331,7 @@
 
     <div class="tabs-wrapper">
         <div class="tabs-list" id="tabsList">
-            <button class="tab-btn active" data-tab="tab_0">📊 GeradorManut</button>
-            <button class="add-tab-btn" id="addTabBtn">➕ Nova Consulta</button>
+            <!-- As abas serão injetadas dinamicamente: GeradorManut + GeradorFaed + botão nova consulta -->
         </div>
     </div>
 
@@ -378,8 +377,12 @@
         'Valor custeio', 'Valor capital', 'Remessa', 'Data da remessa', 'Finalidade'
     ];
     
-    let abas = [{ id: 'tab_0', sheetName: 'GeradorManut', label: 'GeradorManut' }];
-    let abaAtual = 'tab_0';
+    // Aba padrão: GeradorManut e agora também GeradorFaed (conforme solicitado)
+    let abas = [
+        { id: 'tab_0', sheetName: 'GeradorManut', label: 'GeradorManut' },
+        { id: 'tab_1', sheetName: 'GeradorFaed', label: 'GeradorFaed' }   // NOVA ABA ADICIONADA
+    ];
+    let abaAtual = 'tab_0';      // iniciará com GeradorManut
     let dadosCompletos = [];
     let dadosFiltrados = [];
     let timeoutFiltro = null;
@@ -406,7 +409,7 @@
         return isNaN(num) ? 0 : num;
     }
     
-    // Função para tratar NTE com zero à esquerda (01, 02, 03...)
+    // Tratamento inteligente para NTE com zero à esquerda (01, 02, 03...)
     function tratarNTE(valor) {
         if (!valor || valor === '') return { original: '', numero: null, string: '' };
         
@@ -414,11 +417,9 @@
         let string = original;
         let numero = null;
         
-        // Tenta converter para número inteiro
         let numParse = parseInt(original, 10);
         if (!isNaN(numParse)) {
             numero = numParse;
-            // Formata com zero à esquerda se for de 1 a 9
             if (numero >= 1 && numero <= 9) {
                 string = '0' + numero;
             } else {
@@ -441,28 +442,22 @@
         return soma;
     }
     
-    // CRIA TEXTO PARA BUSCA - ESPECIAL PARA NTE COM ZERO À ESQUERDA
+    // Cria texto de busca aprimorado, especialmente para NTE com e sem zero
     function criarTextoBusca(linha) {
         let texto = '';
         
-        // TRATAMENTO ESPECIAL PARA NTE
         if (linha.NTE !== undefined && linha.NTE !== null && linha.NTE !== '') {
             let nteOriginal = linha.NTE.toString().trim();
             let nteNumero = parseInt(nteOriginal, 10);
-            
-            // Adiciona TODAS as representações possíveis do NTE
-            texto += nteOriginal + ' '; // "01", "02", etc.
-            
+            texto += nteOriginal + ' ';
             if (!isNaN(nteNumero)) {
-                texto += nteNumero + ' '; // 1, 2, 3...
-                // Adiciona com zero à esquerda se for de 1 a 9
+                texto += nteNumero + ' ';
                 if (nteNumero >= 1 && nteNumero <= 9) {
-                    texto += '0' + nteNumero + ' '; // "01", "02"...
+                    texto += '0' + nteNumero + ' ';
                 }
             }
         }
         
-        // Adiciona todas as outras colunas
         for (let i = 1; i < COLUNAS.length; i++) {
             let valor = linha[COLUNAS[i]];
             if (valor) {
@@ -473,26 +468,20 @@
         return texto.toLowerCase();
     }
     
-    // PREPARA DADOS
     function prepararDados(dados) {
         for (let i = 0; i < dados.length; i++) {
-            // Trata NTE
             let nteInfo = tratarNTE(dados[i].NTE);
             dados[i]._nteOriginal = nteInfo.original;
             dados[i]._nteNumero = nteInfo.numero;
             dados[i]._nteString = nteInfo.string;
-            
-            // Valores financeiros
             dados[i]._custeio = extrairNumero(dados[i]['Valor custeio']);
             dados[i]._capital = extrairNumero(dados[i]['Valor capital']);
-            
-            // Texto para busca
             dados[i]._busca = criarTextoBusca(dados[i]);
         }
         return dados;
     }
     
-    // VERIFICA SE O NTE CORRESPONDE AO TERMO PESQUISADO
+    // Verifica correspondência específica do NTE para filtro robusto
     function nteCorresponde(nteInfo, termoPesquisa) {
         if (!nteInfo || !termoPesquisa) return false;
         
@@ -500,27 +489,21 @@
         let termoNumero = parseInt(termo, 10);
         let termoString = termo;
         
-        // Se o termo tem zero à esquerda (ex: "01")
         if (termo.length === 2 && termo[0] === '0') {
             let numTermo = parseInt(termo, 10);
             if (!isNaN(numTermo)) {
-                // Compara com a string do NTE (que pode ser "01" ou "1")
                 if (nteInfo.string === termo || nteInfo.original === termo) return true;
                 if (nteInfo.numero === numTermo) return true;
             }
         }
         
-        // Compara como número
         if (!isNaN(termoNumero) && nteInfo.numero === termoNumero) return true;
-        
-        // Compara como string
         if (nteInfo.original === termoString) return true;
         if (nteInfo.string === termoString) return true;
         
         return false;
     }
     
-    // FILTRO RÁPIDO
     function filtrarDados(termo) {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
@@ -537,21 +520,15 @@
                     let item = dadosCompletos[i];
                     let encontrou = false;
                     
-                    // Busca normal no texto
                     if (item._busca.includes(termoLower)) {
                         encontrou = true;
                     }
                     
-                    // Busca específica por NTE
-                    if (!encontrou) {
-                        if (nteCorresponde({ numero: item._nteNumero, original: item._nteOriginal, string: item._nteString }, termo)) {
-                            encontrou = true;
-                        }
+                    if (!encontrou && nteCorresponde({ numero: item._nteNumero, original: item._nteOriginal, string: item._nteString }, termo)) {
+                        encontrou = true;
                     }
                     
-                    if (encontrou) {
-                        resultado.push(item);
-                    }
+                    if (encontrou) resultado.push(item);
                 }
                 dadosFiltrados = resultado;
             }
@@ -559,18 +536,15 @@
             let soma = calcularSoma(dadosFiltrados);
             filteredCountSpan.innerText = dadosFiltrados.length.toLocaleString();
             filteredSumSpan.innerText = formatarMoeda(soma);
-            
             renderizarTabela(dadosFiltrados, termo.trim());
             
             let fim = performance.now();
             console.log(`🔍 Filtro "${termo}": ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
-        }, 20); // Debounce mais rápido: 20ms
+        }, 20);
     }
     
-    // RENDERIZAÇÃO
     function renderizarTabela(dados, termo = '') {
         requestAnimationFrame(() => {
-            // Cabeçalho
             if (tableHead.children.length === 0) {
                 let tr = document.createElement('tr');
                 for (let col of COLUNAS) {
@@ -592,10 +566,9 @@
                 let linha = dados[i];
                 let tr = document.createElement('tr');
                 
-                // NTE - Exibe formatado
+                // NTE (destacando se houver match no termo)
                 let tdNTE = document.createElement('td');
                 let nteExibir = linha._nteString || linha._nteOriginal || '';
-                // Verifica se o termo corresponde a este NTE
                 let termoNum = parseInt(termo);
                 let termoStr = termo.toString();
                 let destacaNTE = false;
@@ -675,15 +648,14 @@
         totalValueSpan.innerText = formatarMoeda(totalSoma);
     }
     
-    // BUSCAR DADOS DO GOOGLE SHEETS
+    // Função robusta para buscar CSV do Google Sheets com fallback
     async function buscarDados(sheetName) {
         try {
             let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A3:J`;
             let response = await fetch(url);
-            if (!response.ok) throw new Error();
+            if (!response.ok) throw new Error("Falha na primeira tentativa");
             let csv = await response.text();
             let linhas = parseCSV(csv);
-            
             let dados = [];
             for (let i = 0; i < linhas.length; i++) {
                 let linha = linhas[i];
@@ -698,24 +670,30 @@
             }
             return prepararDados(dados);
         } catch (err) {
-            console.log('Erro na busca principal, tentando fallback...');
-            let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-            let response = await fetch(url);
-            let csv = await response.text();
-            let linhas = parseCSV(csv);
-            let dados = [];
-            for (let i = 2; i < linhas.length; i++) {
-                let linha = linhas[i];
-                if (linha.length < 2) continue;
-                let obj = {};
-                for (let j = 0; j < COLUNAS.length; j++) {
-                    obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
+            console.log("Primeira tentativa falhou, tentando fallback sem range especificado...");
+            try {
+                let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+                let response = await fetch(url);
+                let csv = await response.text();
+                let linhas = parseCSV(csv);
+                let dados = [];
+                // Começa da linha 2 (índice 2) para pular cabeçalho se existir
+                for (let i = 2; i < linhas.length; i++) {
+                    let linha = linhas[i];
+                    if (linha.length < 2) continue;
+                    let obj = {};
+                    for (let j = 0; j < COLUNAS.length; j++) {
+                        obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
+                    }
+                    if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
+                        dados.push(obj);
+                    }
                 }
-                if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
-                    dados.push(obj);
-                }
+                return prepararDados(dados);
+            } catch (fallbackErr) {
+                console.error("Erro completo ao carregar aba", sheetName, fallbackErr);
+                return [];
             }
-            return prepararDados(dados);
         }
     }
     
@@ -754,16 +732,17 @@
         
         abaAtual = tabId;
         
+        // Atualiza classe ativa nas abas
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Carregando...</td></tr>';
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Carregando dados...</td></tr>';
         
         let dados = await buscarDados(aba.sheetName);
         
-        if (dados.length === 0) {
+        if (!dados || dados.length === 0) {
             dadosCompletos = [];
             dadosFiltrados = [];
             tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">Nenhum dado encontrado na aba "${aba.sheetName}"</td></tr>`;
@@ -779,10 +758,8 @@
         atualizarCards();
         mostrarLoading(false);
         
-        // Mostra exemplos de NTE carregados
-        let ntes = [...new Set(dadosCompletos.map(d => d._nteString).filter(n => n))].slice(0, 10);
-        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros`);
-        console.log(`📊 NTEs encontrados: ${ntes.join(', ')}...`);
+        let ntesUnicos = [...new Set(dadosCompletos.map(d => d._nteString).filter(n => n))];
+        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros | NTEs amostra: ${ntesUnicos.slice(0, 8).join(', ')}`);
     }
     
     function renderizarAbas() {
@@ -855,8 +832,8 @@
     async function init() {
         configurarBusca();
         configurarModal();
-        renderizarAbas();
-        await carregarAba('tab_0');
+        renderizarAbas();          // Cria as abas: GeradorManut e GeradorFaed
+        await carregarAba('tab_0'); // Inicia com a primeira aba (GeradorManut)
     }
     
     init();
