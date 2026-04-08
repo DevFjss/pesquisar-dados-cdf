@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CDF - Manutenção / FAED / PNAE | Filtro Rápido</title>
+    <title>CDF - Manutenção / FAED / PNAE | Filtro Dinâmico</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -98,21 +98,12 @@
             cursor: pointer;
             color: #3f5a77;
             white-space: nowrap;
+            transition: all 0.2s;
         }
 
         .tab-btn.active {
             background: #1f5780;
             color: white;
-        }
-
-        .add-tab-btn {
-            background: #eef2f7;
-            border: 1px dashed #8ba3bc;
-            padding: 8px 18px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
         }
 
         .search-panel {
@@ -185,7 +176,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 1000px;
+            min-width: 600px;
         }
 
         .data-table th {
@@ -222,62 +213,6 @@
             color: #7b94b0;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            width: 350px;
-            max-width: 90%;
-        }
-        
-        .modal-content h3 {
-            margin-bottom: 15px;
-        }
-        
-        .modal-content input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #dce5ef;
-            border-radius: 10px;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        
-        .modal-buttons button {
-            padding: 8px 18px;
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .btn-confirm {
-            background: #1f5780;
-            color: white;
-        }
-        
-        .btn-cancel {
-            background: #e2e8f0;
-        }
-
         .loading {
             position: fixed;
             top: 20px;
@@ -300,11 +235,6 @@
             padding: 0 2px;
             border-radius: 2px;
         }
-
-        .nte-highlight {
-            font-weight: 700;
-            color: #1f5780;
-        }
     </style>
 </head>
 <body>
@@ -314,12 +244,12 @@
 <div class="dashboard-container">
     <div class="main-header">
         <div class="title-area">
-            <h1>🔍 Pesquisar CDF</h1>
-            <p>Filtro rápido - Busque NTE (01, 02, 03... até 27)</p>
+            <h1>🔍 Pesquisa CDF - Múltiplas Abas</h1>
+            <p>Filtro rápido - Busque em qualquer coluna | Cabeçalho automático</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
-                <div class="stat-label">TOTAL</div>
+                <div class="stat-label">TOTAL REG.</div>
                 <div class="stat-number" id="totalRecords">0</div>
             </div>
             <div class="stat-card">
@@ -331,14 +261,14 @@
 
     <div class="tabs-wrapper">
         <div class="tabs-list" id="tabsList">
-            <!-- As abas serão injetadas dinamicamente: GeradorManut + GeradorFaed + botão nova consulta -->
+            <!-- Abas serão injetadas dinamicamente -->
         </div>
     </div>
 
     <div class="search-panel">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar NTE (ex: 01, 02, 10, 21), Município, Escola..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Pesquisar em qualquer coluna (ex: NTE 01, município, escola, valor...)" autocomplete="off">
         </div>
         <div class="filter-stats">
             <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
@@ -353,41 +283,38 @@
         </table>
     </div>
     <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
-        Fonte: Google Sheets | Dica: pesquise NTE como 01, 02, 03... ou apenas 1, 2, 3...
+        🔄 As colunas são carregadas automaticamente da primeira linha da planilha | Abas: GeradorManut, GeradorFaed, BaseOrdinaria | Valores detectados dinamicamente
     </footer>
-</div>
-
-<div id="modal" class="modal">
-    <div class="modal-content">
-        <h3>➕ Nova consulta</h3>
-        <input type="text" id="sheetNameInput" placeholder="Nome da aba (ex: GeradorFaed)">
-        <input type="text" id="tabLabelInput" placeholder="Nome exibido (ex: FAED 2026)">
-        <div class="modal-buttons">
-            <button class="btn-cancel" id="cancelBtn">Cancelar</button>
-            <button class="btn-confirm" id="confirmBtn">Adicionar</button>
-        </div>
-    </div>
 </div>
 
 <script>
     const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
     
-    const COLUNAS = [
-        'NTE', 'Municipio', 'Cod. SEC', 'Cod. INEP', 'Unidade Escolar', 
-        'Valor custeio', 'Valor capital', 'Remessa', 'Data da remessa', 'Finalidade'
+    // ================= CONFIGURAÇÃO DE ABAS (FIXAS) =================
+    // Adicione ou remova abas conforme necessário.
+    // O campo 'sheetName' deve ser o nome EXATO da aba no Google Sheets.
+    // O campo 'label' é o texto exibido na aba do navegador.
+    // O sistema detecta AUTOMATICAMENTE os cabeçalhos (primeira linha da planilha)
+    // e também identifica colunas que parecem conter valores monetários (R$).
+    
+    let abas = [
+        { id: 'tab_0', sheetName: 'GeradorManut', label: '📋 GeradorManut' },
+        { id: 'tab_1', sheetName: 'GeradorFaed', label: '💰 GeradorFaed' },
+        { id: 'tab_2', sheetName: 'BaseOrdinaria', label: '🔧 Base Manutenção Ordinária' }
+        // ✨ Para adicionar novas abas no futuro, basta inserir novos objetos aqui:
+        // { id: 'tab_3', sheetName: 'PNAE', label: '🍽️ PNAE' },
+        // { id: 'tab_4', sheetName: 'Transporte', label: '🚌 Transporte Escolar' }
     ];
     
-    // Aba padrão: GeradorManut e agora também GeradorFaed (conforme solicitado)
-    let abas = [
-        { id: 'tab_0', sheetName: 'GeradorManut', label: 'GeradorManut' },
-        { id: 'tab_1', sheetName: 'GeradorFaed', label: 'GeradorFaed' }   // NOVA ABA ADICIONADA
-        { id: 'tab_2', sheetName: 'BaseOrdinaria', label: 'Base manutenção ordinaria' }
-    ];
-    let abaAtual = 'tab_0';      // iniciará com GeradorManut
-    let dadosCompletos = [];
+    let abaAtual = 'tab_0';
+    
+    // Estruturas dinâmicas
+    let dadosCompletos = [];       // array de objetos com todos os campos
+    let colunasAtuais = [];        // nomes das colunas (detectadas do cabeçalho)
     let dadosFiltrados = [];
     let timeoutFiltro = null;
     
+    // Elementos DOM
     const searchInput = document.getElementById('searchInput');
     const filteredCountSpan = document.getElementById('filteredCount');
     const filteredSumSpan = document.getElementById('filteredSum');
@@ -397,243 +324,179 @@
     const tableBody = document.getElementById('tableBody');
     const tabsList = document.getElementById('tabsList');
     const loading = document.getElementById('loading');
-    const modal = document.getElementById('modal');
     
     function mostrarLoading(show) {
         loading.classList.toggle('show', show);
     }
     
+    // Extrai número de strings como "R$ 1.234,56" ou "1234.56"
     function extrairNumero(valor) {
-        if (!valor) return 0;
-        let str = valor.toString().replace(/R\$/, '').replace(/\./g, '').replace(',', '.').trim();
-        let num = parseFloat(str.replace(/[^\d.-]/g, ''));
+        if (!valor && valor !== 0) return 0;
+        let str = valor.toString().trim();
+        // Remove R$ e espaços, troca ponto de milhar e vírgula decimal
+        let limpo = str.replace(/R\$/, '').replace(/\./g, '').replace(',', '.').trim();
+        let num = parseFloat(limpo.replace(/[^\d.-]/g, ''));
         return isNaN(num) ? 0 : num;
     }
     
-    // Tratamento inteligente para NTE com zero à esquerda (01, 02, 03...)
-    function tratarNTE(valor) {
-        if (!valor || valor === '') return { original: '', numero: null, string: '' };
+    // Detecta automaticamente quais colunas são numéricas (financeiras) baseado no conteúdo
+    function identificarColunasFinanceiras(dados, colunas) {
+        if (!dados.length || !colunas.length) return [];
         
-        let original = valor.toString().trim();
-        let string = original;
-        let numero = null;
-        
-        let numParse = parseInt(original, 10);
-        if (!isNaN(numParse)) {
-            numero = numParse;
-            if (numero >= 1 && numero <= 9) {
-                string = '0' + numero;
-            } else {
-                string = numero.toString();
+        let colunasFinanceiras = [];
+        for (let col of colunas) {
+            let amostra = dados.slice(0, 50); // pega até 50 registros para análise
+            let temValorFinanceiro = false;
+            for (let row of amostra) {
+                let valor = row[col];
+                if (valor && typeof valor === 'string') {
+                    // Verifica padrão de moeda brasileira ou número com vírgula/ponto
+                    if (/R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}/.test(valor) || /^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(valor) || /^\d+(?:\.\d+)?$/.test(valor)) {
+                        temValorFinanceiro = true;
+                        break;
+                    }
+                } else if (typeof valor === 'number') {
+                    temValorFinanceiro = true;
+                    break;
+                }
             }
+            // Também considera nomes de coluna que sugerem valores
+            let nomeLower = col.toLowerCase();
+            if (nomeLower.includes('valor') || nomeLower.includes('custeio') || nomeLower.includes('capital') || 
+                nomeLower.includes('repasse') || nomeLower.includes('total') || nomeLower.includes('montante') ||
+                nomeLower.includes('preço') || nomeLower.includes('custo')) {
+                temValorFinanceiro = true;
+            }
+            if (temValorFinanceiro) colunasFinanceiras.push(col);
         }
-        
-        return { original, numero, string };
+        return colunasFinanceiras;
+    }
+    
+    // Soma os valores das colunas financeiras para uma linha
+    function somarValoresLinha(linha, colunasFinanceiras) {
+        let soma = 0;
+        for (let col of colunasFinanceiras) {
+            soma += extrairNumero(linha[col]);
+        }
+        return soma;
+    }
+    
+    function calcularSomaTotal(dados, colunasFinanceiras) {
+        let soma = 0;
+        for (let i = 0; i < dados.length; i++) {
+            soma += somarValoresLinha(dados[i], colunasFinanceiras);
+        }
+        return soma;
     }
     
     function formatarMoeda(valor) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
     }
     
-    function calcularSoma(dados) {
-        let soma = 0;
-        for (let i = 0; i < dados.length; i++) {
-            soma += dados[i]._custeio + dados[i]._capital;
-        }
-        return soma;
-    }
-    
-    // Cria texto de busca aprimorado, especialmente para NTE com e sem zero
-    function criarTextoBusca(linha) {
+    // Cria texto de busca unificado para cada linha (todas as colunas)
+    function criarTextoBusca(linha, colunas) {
         let texto = '';
-        
-        if (linha.NTE !== undefined && linha.NTE !== null && linha.NTE !== '') {
-            let nteOriginal = linha.NTE.toString().trim();
-            let nteNumero = parseInt(nteOriginal, 10);
-            texto += nteOriginal + ' ';
-            if (!isNaN(nteNumero)) {
-                texto += nteNumero + ' ';
-                if (nteNumero >= 1 && nteNumero <= 9) {
-                    texto += '0' + nteNumero + ' ';
-                }
-            }
-        }
-        
-        for (let i = 1; i < COLUNAS.length; i++) {
-            let valor = linha[COLUNAS[i]];
-            if (valor) {
+        for (let col of colunas) {
+            let valor = linha[col];
+            if (valor !== undefined && valor !== null && valor !== '') {
                 texto += valor.toString().toLowerCase() + ' ';
             }
         }
-        
-        return texto.toLowerCase();
+        return texto.trim();
     }
     
-    function prepararDados(dados) {
+    // Prepara os dados: adiciona metadados (busca, valores numéricos)
+    function prepararDados(dados, colunas, colunasFinanceiras) {
         for (let i = 0; i < dados.length; i++) {
-            let nteInfo = tratarNTE(dados[i].NTE);
-            dados[i]._nteOriginal = nteInfo.original;
-            dados[i]._nteNumero = nteInfo.numero;
-            dados[i]._nteString = nteInfo.string;
-            dados[i]._custeio = extrairNumero(dados[i]['Valor custeio']);
-            dados[i]._capital = extrairNumero(dados[i]['Valor capital']);
-            dados[i]._busca = criarTextoBusca(dados[i]);
+            dados[i]._busca = criarTextoBusca(dados[i], colunas);
+            dados[i]._valorTotal = somarValoresLinha(dados[i], colunasFinanceiras);
         }
         return dados;
     }
     
-    // Verifica correspondência específica do NTE para filtro robusto
-    function nteCorresponde(nteInfo, termoPesquisa) {
-        if (!nteInfo || !termoPesquisa) return false;
-        
-        let termo = termoPesquisa.toString().trim();
-        let termoNumero = parseInt(termo, 10);
-        let termoString = termo;
-        
-        if (termo.length === 2 && termo[0] === '0') {
-            let numTermo = parseInt(termo, 10);
-            if (!isNaN(numTermo)) {
-                if (nteInfo.string === termo || nteInfo.original === termo) return true;
-                if (nteInfo.numero === numTermo) return true;
-            }
-        }
-        
-        if (!isNaN(termoNumero) && nteInfo.numero === termoNumero) return true;
-        if (nteInfo.original === termoString) return true;
-        if (nteInfo.string === termoString) return true;
-        
-        return false;
-    }
-    
+    // Filtro de texto em todas as colunas
     function filtrarDados(termo) {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
         timeoutFiltro = setTimeout(() => {
-            let inicio = performance.now();
-            
             if (!termo.trim()) {
                 dadosFiltrados = [...dadosCompletos];
             } else {
                 let termoLower = termo.trim().toLowerCase();
                 let resultado = [];
-                
                 for (let i = 0; i < dadosCompletos.length; i++) {
-                    let item = dadosCompletos[i];
-                    let encontrou = false;
-                    
-                    if (item._busca.includes(termoLower)) {
-                        encontrou = true;
+                    if (dadosCompletos[i]._busca.includes(termoLower)) {
+                        resultado.push(dadosCompletos[i]);
                     }
-                    
-                    if (!encontrou && nteCorresponde({ numero: item._nteNumero, original: item._nteOriginal, string: item._nteString }, termo)) {
-                        encontrou = true;
-                    }
-                    
-                    if (encontrou) resultado.push(item);
                 }
                 dadosFiltrados = resultado;
             }
             
-            let soma = calcularSoma(dadosFiltrados);
+            // Atualiza estatísticas com base nas colunas financeiras detectadas
+            let colunasFin = identificarColunasFinanceiras(dadosCompletos, colunasAtuais);
+            let soma = calcularSomaTotal(dadosFiltrados, colunasFin);
             filteredCountSpan.innerText = dadosFiltrados.length.toLocaleString();
             filteredSumSpan.innerText = formatarMoeda(soma);
-            renderizarTabela(dadosFiltrados, termo.trim());
             
-            let fim = performance.now();
-            console.log(`🔍 Filtro "${termo}": ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
+            renderizarTabela(dadosFiltrados, termo.trim());
         }, 20);
     }
     
+    // Renderiza a tabela com qualquer quantidade de colunas (dinâmico)
     function renderizarTabela(dados, termo = '') {
         requestAnimationFrame(() => {
-            if (tableHead.children.length === 0) {
+            if (!colunasAtuais.length) {
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.</tr>';
+                return;
+            }
+            
+            // Cabeçalho dinâmico (se não existir ou se for recriado)
+            if (tableHead.children.length === 0 || tableHead.children[0].cells.length !== colunasAtuais.length) {
                 let tr = document.createElement('tr');
-                for (let col of COLUNAS) {
+                for (let col of colunasAtuais) {
                     let th = document.createElement('th');
                     th.innerText = col;
                     tr.appendChild(th);
                 }
+                tableHead.innerHTML = '';
                 tableHead.appendChild(tr);
             }
             
             if (dados.length === 0) {
-                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhum registro encontrado</td></tr>';
+                let colspan = colunasAtuais.length;
+                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado para esta pesquisa.</tr>`;
                 return;
             }
             
             let fragment = document.createDocumentFragment();
+            let termoLower = termo.toLowerCase();
             
             for (let i = 0; i < dados.length; i++) {
                 let linha = dados[i];
                 let tr = document.createElement('tr');
                 
-                // NTE (destacando se houver match no termo)
-                let tdNTE = document.createElement('td');
-                let nteExibir = linha._nteString || linha._nteOriginal || '';
-                let termoNum = parseInt(termo);
-                let termoStr = termo.toString();
-                let destacaNTE = false;
-                
-                if (termo) {
-                    if (linha._nteNumero === termoNum && !isNaN(termoNum)) destacaNTE = true;
-                    if (linha._nteString === termoStr) destacaNTE = true;
-                    if (linha._nteOriginal === termoStr) destacaNTE = true;
+                for (let j = 0; j < colunasAtuais.length; j++) {
+                    let col = colunasAtuais[j];
+                    let valorCelula = linha[col] !== undefined && linha[col] !== null ? linha[col].toString() : '';
+                    let td = document.createElement('td');
+                    
+                    // Destaca o termo pesquisado em qualquer célula (case insensitive)
+                    if (termo && termoLower && valorCelula.toLowerCase().includes(termoLower)) {
+                        let regex = new RegExp(`(${termoLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                        let novoHtml = valorCelula.replace(regex, `<mark>$1</mark>`);
+                        td.innerHTML = novoHtml;
+                    } else {
+                        td.innerText = valorCelula;
+                    }
+                    
+                    // Se for uma coluna que contém valores monetários, aplica classe de destaque
+                    let nomeColLower = col.toLowerCase();
+                    if (nomeColLower.includes('valor') || nomeColLower.includes('custeio') || nomeColLower.includes('capital') ||
+                        nomeColLower.includes('repasse') || nomeColLower.includes('total') || nomeColLower.includes('preço')) {
+                        td.classList.add('valor-highlight');
+                    }
+                    tr.appendChild(td);
                 }
-                
-                if (destacaNTE) {
-                    tdNTE.innerHTML = `<mark class="nte-highlight">${nteExibir}</mark>`;
-                } else {
-                    tdNTE.innerText = nteExibir;
-                }
-                tr.appendChild(tdNTE);
-                
-                // Municipio
-                let tdMun = document.createElement('td');
-                tdMun.innerText = linha.Municipio || '';
-                tr.appendChild(tdMun);
-                
-                // Cod. SEC
-                let tdSec = document.createElement('td');
-                tdSec.innerText = linha['Cod. SEC'] || '';
-                tr.appendChild(tdSec);
-                
-                // Cod. INEP
-                let tdInep = document.createElement('td');
-                tdInep.innerText = linha['Cod. INEP'] || '';
-                tr.appendChild(tdInep);
-                
-                // Unidade Escolar
-                let tdEscola = document.createElement('td');
-                tdEscola.innerText = linha['Unidade Escolar'] || '';
-                tr.appendChild(tdEscola);
-                
-                // Valor custeio
-                let tdCusteio = document.createElement('td');
-                tdCusteio.innerText = formatarMoeda(linha._custeio);
-                tdCusteio.className = 'valor-highlight';
-                tr.appendChild(tdCusteio);
-                
-                // Valor capital
-                let tdCapital = document.createElement('td');
-                tdCapital.innerText = formatarMoeda(linha._capital);
-                tdCapital.className = 'valor-highlight';
-                tr.appendChild(tdCapital);
-                
-                // Remessa
-                let tdRemessa = document.createElement('td');
-                tdRemessa.innerText = linha.Remessa || '';
-                tr.appendChild(tdRemessa);
-                
-                // Data
-                let tdData = document.createElement('td');
-                tdData.innerText = linha['Data da remessa'] || '';
-                tr.appendChild(tdData);
-                
-                // Finalidade
-                let tdFinal = document.createElement('td');
-                tdFinal.innerText = linha.Finalidade || '';
-                tr.appendChild(tdFinal);
-                
                 fragment.appendChild(tr);
             }
             
@@ -642,127 +505,145 @@
         });
     }
     
-    function atualizarCards() {
+    function atualizarCards(colunasFinanceiras) {
         let totalRegistros = dadosCompletos.length;
-        let totalSoma = calcularSoma(dadosCompletos);
+        let totalSoma = calcularSomaTotal(dadosCompletos, colunasFinanceiras);
         totalRecordsSpan.innerText = totalRegistros.toLocaleString();
         totalValueSpan.innerText = formatarMoeda(totalSoma);
     }
     
-    // Função robusta para buscar CSV do Google Sheets com fallback
+    // Parse de CSV robusto (lida com aspas e vírgulas dentro de campos)
+    function parseCSV(csvStr) {
+        const linhas = [];
+        let linhaAtual = [];
+        let campoAtual = '';
+        let dentroAspas = false;
+        
+        for (let i = 0; i < csvStr.length; i++) {
+            let ch = csvStr[i];
+            if (ch === '"') {
+                if (dentroAspas && csvStr[i+1] === '"') {
+                    campoAtual += '"';
+                    i++;
+                } else {
+                    dentroAspas = !dentroAspas;
+                }
+            } else if (ch === ',' && !dentroAspas) {
+                linhaAtual.push(campoAtual.trim());
+                campoAtual = '';
+            } else if (ch === '\n' && !dentroAspas) {
+                linhaAtual.push(campoAtual.trim());
+                if (linhaAtual.length > 0 && !(linhaAtual.length === 1 && linhaAtual[0] === '')) {
+                    linhas.push(linhaAtual);
+                }
+                linhaAtual = [];
+                campoAtual = '';
+            } else {
+                campoAtual += ch;
+            }
+        }
+        if (campoAtual !== '' || linhaAtual.length > 0) {
+            linhaAtual.push(campoAtual.trim());
+            if (linhaAtual.length > 0 && !(linhaAtual.length === 1 && linhaAtual[0] === '')) {
+                linhas.push(linhaAtual);
+            }
+        }
+        return linhas;
+    }
+    
+    // Busca dinâmica: carrega qualquer aba e detecta cabeçalho na primeira linha
     async function buscarDados(sheetName) {
         try {
-            let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A3:J`;
+            // URL sem range fixo para capturar todas as colunas
+            let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
             let response = await fetch(url);
-            if (!response.ok) throw new Error("Falha na primeira tentativa");
+            if (!response.ok) throw new Error("Falha ao buscar dados");
             let csv = await response.text();
             let linhas = parseCSV(csv);
+            
+            if (!linhas || linhas.length < 2) {
+                console.warn(`Aba ${sheetName} vazia ou com apenas cabeçalho.`);
+                return { colunas: [], dados: [] };
+            }
+            
+            // Primeira linha = cabeçalho (colunas)
+            let colunas = linhas[0].map(c => c.trim()).filter(c => c !== '');
+            if (colunas.length === 0) return { colunas: [], dados: [] };
+            
             let dados = [];
-            for (let i = 0; i < linhas.length; i++) {
-                let linha = linhas[i];
-                if (linha.length < 2) continue;
+            for (let i = 1; i < linhas.length; i++) {
+                let linhaValores = linhas[i];
                 let obj = {};
-                for (let j = 0; j < COLUNAS.length; j++) {
-                    obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
+                for (let j = 0; j < colunas.length; j++) {
+                    let valor = j < linhaValores.length ? linhaValores[j] : '';
+                    // Limpa caracteres estranhos e converte se possível
+                    if (typeof valor === 'string') valor = valor.replace(/^["']|["']$/g, '');
+                    obj[colunas[j]] = valor;
                 }
-                if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
-                    dados.push(obj);
-                }
+                // Verifica se pelo menos alguma coluna tem conteúdo relevante
+                let temConteudo = Object.values(obj).some(v => v && v.toString().trim() !== '');
+                if (temConteudo) dados.push(obj);
             }
-            return prepararDados(dados);
+            
+            return { colunas, dados };
         } catch (err) {
-            console.log("Primeira tentativa falhou, tentando fallback sem range especificado...");
-            try {
-                let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-                let response = await fetch(url);
-                let csv = await response.text();
-                let linhas = parseCSV(csv);
-                let dados = [];
-                // Começa da linha 2 (índice 2) para pular cabeçalho se existir
-                for (let i = 2; i < linhas.length; i++) {
-                    let linha = linhas[i];
-                    if (linha.length < 2) continue;
-                    let obj = {};
-                    for (let j = 0; j < COLUNAS.length; j++) {
-                        obj[COLUNAS[j]] = j < linha.length ? linha[j] : '';
-                    }
-                    if (obj.NTE || obj.Municipio || obj['Unidade Escolar']) {
-                        dados.push(obj);
-                    }
-                }
-                return prepararDados(dados);
-            } catch (fallbackErr) {
-                console.error("Erro completo ao carregar aba", sheetName, fallbackErr);
-                return [];
-            }
+            console.error(`Erro ao carregar aba ${sheetName}:`, err);
+            return { colunas: [], dados: [] };
         }
     }
     
-    function parseCSV(csvStr) {
-        let linhas = csvStr.split(/\r?\n/);
-        let resultado = [];
-        for (let linha of linhas) {
-            if (linha.trim() === "") continue;
-            let row = [];
-            let atual = "";
-            let aspas = false;
-            for (let i = 0; i < linha.length; i++) {
-                let ch = linha[i];
-                if (ch === '"') {
-                    aspas = !aspas;
-                } else if (ch === ',' && !aspas) {
-                    row.push(atual.trim());
-                    atual = "";
-                } else {
-                    atual += ch;
-                }
-            }
-            row.push(atual.trim());
-            let limpo = row.map(cell => {
-                if (cell.startsWith('"') && cell.endsWith('"')) return cell.slice(1, -1);
-                return cell;
-            });
-            resultado.push(limpo);
-        }
-        return resultado;
-    }
-    
+    // Carregar aba selecionada com detecção automática de colunas e valores
     async function carregarAba(tabId) {
         let aba = abas.find(t => t.id === tabId);
         if (!aba) return;
         
         abaAtual = tabId;
         
-        // Atualiza classe ativa nas abas
-        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+        // Atualizar classe ativa nos botões
+        document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Carregando dados...</td></tr>';
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados e detectando colunas...</tr>';
+        tableHead.innerHTML = ''; // limpa cabeçalho anterior
         
-        let dados = await buscarDados(aba.sheetName);
+        let { colunas, dados } = await buscarDados(aba.sheetName);
         
-        if (!dados || dados.length === 0) {
+        if (!colunas.length || dados.length === 0) {
             dadosCompletos = [];
+            colunasAtuais = [];
             dadosFiltrados = [];
-            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">Nenhum dado encontrado na aba "${aba.sheetName}"</td></tr>`;
+            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}". Verifique o nome da aba e se existe cabeçalho na primeira linha.</tr>`;
             totalRecordsSpan.innerText = '0';
             totalValueSpan.innerText = formatarMoeda(0);
+            filteredCountSpan.innerText = '0';
+            filteredSumSpan.innerText = formatarMoeda(0);
             mostrarLoading(false);
             return;
         }
         
-        dadosCompletos = dados;
+        // Identifica colunas financeiras automaticamente
+        let colunasFinanceiras = identificarColunasFinanceiras(dados, colunas);
+        
+        // Prepara dados com texto de busca e valores financeiros
+        let dadosPreparados = prepararDados(dados, colunas, colunasFinanceiras);
+        
+        dadosCompletos = dadosPreparados;
+        colunasAtuais = colunas;
         searchInput.value = '';
         filtrarDados('');
-        atualizarCards();
-        mostrarLoading(false);
+        atualizarCards(colunasFinanceiras);
         
-        let ntesUnicos = [...new Set(dadosCompletos.map(d => d._nteString).filter(n => n))];
-        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros | NTEs amostra: ${ntesUnicos.slice(0, 8).join(', ')}`);
+        // Exibe no console informações úteis para debug
+        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros, ${colunas.length} colunas detectadas.`);
+        console.log(`📊 Colunas: ${colunas.join(', ')}`);
+        console.log(`💰 Colunas financeiras detectadas: ${colunasFinanceiras.length ? colunasFinanceiras.join(', ') : 'nenhuma (use valores numéricos)'}`);
+        
+        mostrarLoading(false);
     }
     
+    // Renderiza as abas no topo (sem botão de nova consulta, apenas as abas fixas)
     function renderizarAbas() {
         let botoes = [];
         for (let aba of abas) {
@@ -770,58 +651,13 @@
             btn.className = 'tab-btn';
             if (aba.id === abaAtual) btn.classList.add('active');
             btn.setAttribute('data-tab', aba.id);
-            btn.innerHTML = `📋 ${aba.label}`;
+            btn.innerHTML = `${aba.label}`;
             btn.onclick = () => carregarAba(aba.id);
             botoes.push(btn);
         }
         
-        let addBtn = document.createElement('button');
-        addBtn.className = 'add-tab-btn';
-        addBtn.innerHTML = '➕ Nova Consulta';
-        addBtn.onclick = () => modal.style.display = 'flex';
-        
         tabsList.innerHTML = '';
         for (let btn of botoes) tabsList.appendChild(btn);
-        tabsList.appendChild(addBtn);
-    }
-    
-    function adicionarAba(sheetName, label) {
-        if (!sheetName.trim()) {
-            alert('Digite o nome da aba');
-            return false;
-        }
-        let novoId = 'tab_' + Date.now();
-        abas.push({
-            id: novoId,
-            sheetName: sheetName.trim(),
-            label: label.trim() || sheetName.trim()
-        });
-        renderizarAbas();
-        carregarAba(novoId);
-        return true;
-    }
-    
-    function configurarModal() {
-        document.getElementById('cancelBtn').onclick = () => {
-            modal.style.display = 'none';
-            document.getElementById('sheetNameInput').value = '';
-            document.getElementById('tabLabelInput').value = '';
-        };
-        document.getElementById('confirmBtn').onclick = () => {
-            let sheet = document.getElementById('sheetNameInput').value.trim();
-            let label = document.getElementById('tabLabelInput').value.trim();
-            if (!sheet) {
-                alert('Informe o nome da aba');
-                return;
-            }
-            adicionarAba(sheet, label);
-            modal.style.display = 'none';
-            document.getElementById('sheetNameInput').value = '';
-            document.getElementById('tabLabelInput').value = '';
-        };
-        window.onclick = (e) => {
-            if (e.target === modal) modal.style.display = 'none';
-        };
     }
     
     function configurarBusca() {
@@ -832,9 +668,14 @@
     
     async function init() {
         configurarBusca();
-        configurarModal();
-        renderizarAbas();          // Cria as abas: GeradorManut e GeradorFaed
-        await carregarAba('tab_0'); // Inicia com a primeira aba (GeradorManut)
+        renderizarAbas();
+        // Carrega a primeira aba por padrão (GeradorManut)
+        if (abas.length > 0) {
+            await carregarAba(abas[0].id);
+        } else {
+            console.warn("Nenhuma aba configurada.");
+            tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma aba definida. Adicione abas no array "abas".</tr>';
+        }
     }
     
     init();
