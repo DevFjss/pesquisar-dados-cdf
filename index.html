@@ -177,25 +177,30 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            table-layout: fixed; /* Necessário para redimensionamento manual */
+            table-layout: fixed;
         }
 
         .data-table th {
             text-align: left;
             padding: 12px 10px;
-            background: #f8fafc;
             font-weight: 700;
             color: #1f4970;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 2px solid #1a4a6e;
+            background: #f8fafc;
             position: sticky;
             top: 0;
-            background: white;
             z-index: 10;
-            position: relative;
             user-select: none;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            position: relative;
+            border-right: 2px solid #1a4a6e;
+        }
+        
+        /* Remove a borda direita da última coluna */
+        .data-table th:last-child {
+            border-right: none;
         }
 
         .data-table td {
@@ -205,6 +210,12 @@
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        /* Remove a borda direita da última célula de cada linha */
+        .data-table td:last-child {
+            border-right: none;
         }
 
         .data-table tr:hover td {
@@ -245,30 +256,43 @@
             border-radius: 2px;
         }
 
-        /* Estilos para o redimensionamento de colunas */
+        /* Estilos para o redimensionamento de colunas - LINHA DIVISÓRIA AZUL ESCURO */
         .resize-handle {
             position: absolute;
             top: 0;
-            right: 0;
-            width: 5px;
+            right: -3px;
+            width: 6px;
             height: 100%;
             cursor: col-resize;
-            background-color: transparent;
+            background-color: #1a4a6e;
             z-index: 20;
+            border-radius: 3px;
+            opacity: 0.7;
+            transition: opacity 0.15s ease;
         }
 
-        .resize-handle:hover,
+        .resize-handle:hover {
+            opacity: 1;
+            background-color: #0e3b5c;
+            width: 6px;
+            right: -3px;
+        }
+
         .resize-handle.active {
-            background-color: #1f5780;
-            opacity: 0.5;
+            background-color: #ff9800;
+            opacity: 1;
         }
 
         .resizing {
             cursor: col-resize;
             user-select: none;
         }
+        
+        /* Classe para suavizar o redimensionamento */
+        .smooth-resize {
+            transition: width 0.05s ease;
+        }
 
-        /* Botão resetar larguras */
         .reset-cols-btn {
             background: #eef2f7;
             border: 1px solid #cbdde9;
@@ -296,6 +320,17 @@
             font-size: 0.65rem;
             color: #6c86a3;
         }
+        
+        /* Linha guia durante redimensionamento */
+        .resize-guide {
+            position: fixed;
+            top: 0;
+            width: 2px;
+            background-color: #ff9800;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
@@ -306,7 +341,7 @@
     <div class="main-header">
         <div class="title-area">
             <h1>🔍 Pesquisa CDF - Múltiplas Abas</h1>
-            <p>Filtro rápido - Redimensione colunas arrastando as bordas</p>
+            <p>Filtro rápido - Arraste a linha azul entre as colunas</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
@@ -339,7 +374,7 @@
 
     <div class="table-header-wrapper">
         <div class="col-resize-info">
-            <i class="fas fa-arrows-alt-h"></i> Dica: arraste as bordas das células do cabeçalho para redimensionar
+            <i class="fas fa-arrows-alt-h"></i> Dica: arraste a barra azul entre as colunas para redimensionar
         </div>
         <button class="reset-cols-btn" id="resetColsBtn">
             <i class="fas fa-undo-alt"></i> Resetar larguras
@@ -353,19 +388,18 @@
         </table>
     </div>
     <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
-        🔄 Colunas carregadas automaticamente da primeira linha | Abas: GeradorManut, GeradorFaed, BaseOrdinaria | ✨ Clique e arraste as bordas das colunas para ajustar a largura
+        🔄 Colunas carregadas automaticamente da primeira linha | Abas: GeradorManut, GeradorFaed, BaseOrdinaria | ✨ Arraste a linha azul para ajustar largura
     </footer>
 </div>
 
 <script>
     const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
     
-    // ================= CONFIGURAÇÃO DE ABAS (FIXAS) =================
+    // Configuração de abas
     let abas = [
         { id: 'tab_0', sheetName: 'GeradorManut', label: '📋 GeradorManut' },
         { id: 'tab_1', sheetName: 'GeradorFaed', label: '💰 GeradorFaed' },
         { id: 'tab_2', sheetName: 'BaseOrdinaria', label: '🔧 Base Manutenção Ordinária' }
-        // Adicione novas abas aqui no futuro
     ];
     
     let abaAtual = 'tab_0';
@@ -373,7 +407,7 @@
     let colunasAtuais = [];
     let dadosFiltrados = [];
     let timeoutFiltro = null;
-    let largurasColunas = {}; // Armazena larguras personalizadas por aba e coluna
+    let largurasColunas = {};
     
     // Elementos DOM
     const searchInput = document.getElementById('searchInput');
@@ -387,12 +421,14 @@
     const loading = document.getElementById('loading');
     const resetColsBtn = document.getElementById('resetColsBtn');
     
-    // Variáveis para redimensionamento
+    // Variáveis para redimensionamento otimizado
     let isResizing = false;
     let currentColumnIndex = null;
     let startX = 0;
     let startWidth = 0;
     let currentTh = null;
+    let resizeFrameId = null;
+    let resizeGuide = null;
     
     function mostrarLoading(show) {
         loading.classList.toggle('show', show);
@@ -410,26 +446,11 @@
         if (!dados.length || !colunas.length) return [];
         let colunasFinanceiras = [];
         for (let col of colunas) {
-            let amostra = dados.slice(0, 50);
-            let temValorFinanceiro = false;
-            for (let row of amostra) {
-                let valor = row[col];
-                if (valor && typeof valor === 'string') {
-                    if (/R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}/.test(valor) || /^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(valor) || /^\d+(?:\.\d+)?$/.test(valor)) {
-                        temValorFinanceiro = true;
-                        break;
-                    }
-                } else if (typeof valor === 'number') {
-                    temValorFinanceiro = true;
-                    break;
-                }
-            }
             let nomeLower = col.toLowerCase();
             if (nomeLower.includes('valor') || nomeLower.includes('custeio') || nomeLower.includes('capital') || 
                 nomeLower.includes('repasse') || nomeLower.includes('total') || nomeLower.includes('montante')) {
-                temValorFinanceiro = true;
+                colunasFinanceiras.push(col);
             }
-            if (temValorFinanceiro) colunasFinanceiras.push(col);
         }
         return colunasFinanceiras;
     }
@@ -473,14 +494,12 @@
         return dados;
     }
     
-    // Salvar larguras no localStorage
     function salvarLarguras() {
         if (!abaAtual) return;
         const key = `col_widths_${abaAtual}`;
         localStorage.setItem(key, JSON.stringify(largurasColunas));
     }
     
-    // Carregar larguras salvas
     function carregarLargurasSalvas() {
         const key = `col_widths_${abaAtual}`;
         const salvo = localStorage.getItem(key);
@@ -493,8 +512,7 @@
         }
     }
     
-    // Aplicar larguras às colunas da tabela
-    function aplicarLarguras() {
+    function aplicarLargurasSemRedraw() {
         if (!tableHead.rows[0]) return;
         const ths = tableHead.rows[0].cells;
         for (let i = 0; i < ths.length; i++) {
@@ -502,7 +520,6 @@
             if (largurasColunas[colName] && ths[i]) {
                 ths[i].style.width = largurasColunas[colName] + 'px';
                 ths[i].style.minWidth = largurasColunas[colName] + 'px';
-                // Aplica também nas células do corpo (manter consistência)
                 const allRows = tableBody.querySelectorAll('tr');
                 for (let row of allRows) {
                     if (row.cells[i]) {
@@ -514,7 +531,6 @@
         }
     }
     
-    // Resetar larguras para automático
     function resetarLarguras() {
         largurasColunas = {};
         salvarLarguras();
@@ -523,7 +539,6 @@
             for (let i = 0; i < ths.length; i++) {
                 ths[i].style.width = '';
                 ths[i].style.minWidth = '';
-                // Resetar células do corpo
                 const allRows = tableBody.querySelectorAll('tr');
                 for (let row of allRows) {
                     if (row.cells[i]) {
@@ -535,11 +550,32 @@
         }
     }
     
-    // Inicializar manipuladores de redimensionamento
+    function criarGuiaResize(x, top, height) {
+        if (resizeGuide) resizeGuide.remove();
+        resizeGuide = document.createElement('div');
+        resizeGuide.className = 'resize-guide';
+        resizeGuide.style.left = x + 'px';
+        resizeGuide.style.top = top + 'px';
+        resizeGuide.style.height = height + 'px';
+        document.body.appendChild(resizeGuide);
+    }
+    
+    function atualizarGuiaResize(x) {
+        if (resizeGuide) {
+            resizeGuide.style.left = x + 'px';
+        }
+    }
+    
+    function removerGuiaResize() {
+        if (resizeGuide) {
+            resizeGuide.remove();
+            resizeGuide = null;
+        }
+    }
+    
     function initResizeHandlers() {
         const ths = document.querySelectorAll('#tableHead th');
         ths.forEach((th, index) => {
-            // Remove handle antigo se existir
             const oldHandle = th.querySelector('.resize-handle');
             if (oldHandle) oldHandle.remove();
             
@@ -559,27 +595,38 @@
                 startWidth = th.offsetWidth;
                 document.body.classList.add('resizing');
                 
+                const rect = th.getBoundingClientRect();
+                const tableRect = document.querySelector('.table-wrapper').getBoundingClientRect();
+                criarGuiaResize(rect.right, tableRect.top, tableRect.height);
+                
                 const onMouseMove = (moveEvent) => {
                     if (!isResizing) return;
                     const diff = moveEvent.clientX - startX;
                     let newWidth = startWidth + diff;
-                    if (newWidth < 50) newWidth = 50;
+                    if (newWidth < 60) newWidth = 60;
+                    if (newWidth > 800) newWidth = 800;
                     
-                    const colName = colunasAtuais[currentColumnIndex];
-                    if (colName) {
-                        largurasColunas[colName] = newWidth;
-                        th.style.width = newWidth + 'px';
-                        th.style.minWidth = newWidth + 'px';
-                        
-                        // Aplica a mesma largura para todas as células da coluna
-                        const rows = tableBody.querySelectorAll('tr');
-                        for (let row of rows) {
-                            if (row.cells[currentColumnIndex]) {
-                                row.cells[currentColumnIndex].style.width = newWidth + 'px';
-                                row.cells[currentColumnIndex].style.minWidth = newWidth + 'px';
+                    atualizarGuiaResize(moveEvent.clientX);
+                    
+                    if (resizeFrameId) cancelAnimationFrame(resizeFrameId);
+                    resizeFrameId = requestAnimationFrame(() => {
+                        const colName = colunasAtuais[currentColumnIndex];
+                        if (colName) {
+                            largurasColunas[colName] = newWidth;
+                            if (currentTh) {
+                                currentTh.style.width = newWidth + 'px';
+                                currentTh.style.minWidth = newWidth + 'px';
+                            }
+                            const rows = tableBody.querySelectorAll('tr');
+                            for (let row of rows) {
+                                if (row.cells[currentColumnIndex]) {
+                                    row.cells[currentColumnIndex].style.width = newWidth + 'px';
+                                    row.cells[currentColumnIndex].style.minWidth = newWidth + 'px';
+                                }
                             }
                         }
-                    }
+                        resizeFrameId = null;
+                    });
                 };
                 
                 const onMouseUp = () => {
@@ -587,6 +634,11 @@
                     currentColumnIndex = null;
                     currentTh = null;
                     document.body.classList.remove('resizing');
+                    if (resizeFrameId) {
+                        cancelAnimationFrame(resizeFrameId);
+                        resizeFrameId = null;
+                    }
+                    removerGuiaResize();
                     salvarLarguras();
                     document.removeEventListener('mousemove', onMouseMove);
                     document.removeEventListener('mouseup', onMouseUp);
@@ -631,7 +683,6 @@
                 return;
             }
             
-            // Recria cabeçalho mantendo larguras salvas
             if (tableHead.children.length === 0 || tableHead.children[0].cells.length !== colunasAtuais.length) {
                 let tr = document.createElement('tr');
                 for (let col of colunasAtuais) {
@@ -643,7 +694,6 @@
                 tableHead.innerHTML = '';
                 tableHead.appendChild(tr);
             } else {
-                // Atualiza textos do cabeçalho caso tenha mudado
                 const ths = tableHead.rows[0].cells;
                 for (let i = 0; i < colunasAtuais.length; i++) {
                     if (ths[i]) ths[i].innerText = colunasAtuais[i];
@@ -654,7 +704,7 @@
                 let colspan = colunasAtuais.length;
                 tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado para esta pesquisa.</td></tr>`;
                 initResizeHandlers();
-                aplicarLarguras();
+                aplicarLargurasSemRedraw();
                 return;
             }
             
@@ -684,7 +734,6 @@
                         td.classList.add('valor-highlight');
                     }
                     
-                    // Aplica largura salva se existir
                     if (largurasColunas[col]) {
                         td.style.width = largurasColunas[col] + 'px';
                         td.style.minWidth = largurasColunas[col] + 'px';
@@ -698,7 +747,6 @@
             tableBody.innerHTML = '';
             tableBody.appendChild(fragment);
             
-            // Aplica larguras salvas no cabeçalho
             for (let j = 0; j < colunasAtuais.length; j++) {
                 let col = colunasAtuais[j];
                 let th = tableHead.rows[0]?.cells[j];
