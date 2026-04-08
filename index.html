@@ -170,13 +170,14 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             max-height: 60vh;
             overflow-y: auto;
+            position: relative;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            min-width: 600px;
+            table-layout: fixed; /* Necessário para redimensionamento manual */
         }
 
         .data-table th {
@@ -190,12 +191,20 @@
             top: 0;
             background: white;
             z-index: 10;
+            position: relative;
+            user-select: none;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .data-table td {
             padding: 8px 10px;
             border-bottom: 1px solid #f0f5fa;
             color: #2c405c;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .data-table tr:hover td {
@@ -235,6 +244,58 @@
             padding: 0 2px;
             border-radius: 2px;
         }
+
+        /* Estilos para o redimensionamento de colunas */
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background-color: transparent;
+            z-index: 20;
+        }
+
+        .resize-handle:hover,
+        .resize-handle.active {
+            background-color: #1f5780;
+            opacity: 0.5;
+        }
+
+        .resizing {
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        /* Botão resetar larguras */
+        .reset-cols-btn {
+            background: #eef2f7;
+            border: 1px solid #cbdde9;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.2s;
+        }
+
+        .reset-cols-btn:hover {
+            background: #dce5ef;
+        }
+
+        .table-header-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .col-resize-info {
+            font-size: 0.65rem;
+            color: #6c86a3;
+        }
     </style>
 </head>
 <body>
@@ -245,7 +306,7 @@
     <div class="main-header">
         <div class="title-area">
             <h1>🔍 Pesquisa CDF - Múltiplas Abas</h1>
-            <p>Filtro rápido - Busque em qualquer coluna | Cabeçalho automático</p>
+            <p>Filtro rápido - Redimensione colunas arrastando as bordas</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
@@ -276,6 +337,15 @@
         </div>
     </div>
 
+    <div class="table-header-wrapper">
+        <div class="col-resize-info">
+            <i class="fas fa-arrows-alt-h"></i> Dica: arraste as bordas das células do cabeçalho para redimensionar
+        </div>
+        <button class="reset-cols-btn" id="resetColsBtn">
+            <i class="fas fa-undo-alt"></i> Resetar larguras
+        </button>
+    </div>
+
     <div class="table-wrapper">
         <table class="data-table" id="dataTable">
             <thead id="tableHead"></thead>
@@ -283,7 +353,7 @@
         </table>
     </div>
     <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
-        🔄 As colunas são carregadas automaticamente da primeira linha da planilha | Abas: GeradorManut, GeradorFaed, BaseOrdinaria | Valores detectados dinamicamente
+        🔄 Colunas carregadas automaticamente da primeira linha | Abas: GeradorManut, GeradorFaed, BaseOrdinaria | ✨ Clique e arraste as bordas das colunas para ajustar a largura
     </footer>
 </div>
 
@@ -291,28 +361,19 @@
     const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
     
     // ================= CONFIGURAÇÃO DE ABAS (FIXAS) =================
-    // Adicione ou remova abas conforme necessário.
-    // O campo 'sheetName' deve ser o nome EXATO da aba no Google Sheets.
-    // O campo 'label' é o texto exibido na aba do navegador.
-    // O sistema detecta AUTOMATICAMENTE os cabeçalhos (primeira linha da planilha)
-    // e também identifica colunas que parecem conter valores monetários (R$).
-    
     let abas = [
         { id: 'tab_0', sheetName: 'GeradorManut', label: '📋 GeradorManut' },
         { id: 'tab_1', sheetName: 'GeradorFaed', label: '💰 GeradorFaed' },
         { id: 'tab_2', sheetName: 'BaseOrdinaria', label: '🔧 Base Manutenção Ordinária' }
-        // ✨ Para adicionar novas abas no futuro, basta inserir novos objetos aqui:
-        // { id: 'tab_3', sheetName: 'PNAE', label: '🍽️ PNAE' },
-        // { id: 'tab_4', sheetName: 'Transporte', label: '🚌 Transporte Escolar' }
+        // Adicione novas abas aqui no futuro
     ];
     
     let abaAtual = 'tab_0';
-    
-    // Estruturas dinâmicas
-    let dadosCompletos = [];       // array de objetos com todos os campos
-    let colunasAtuais = [];        // nomes das colunas (detectadas do cabeçalho)
+    let dadosCompletos = [];
+    let colunasAtuais = [];
     let dadosFiltrados = [];
     let timeoutFiltro = null;
+    let largurasColunas = {}; // Armazena larguras personalizadas por aba e coluna
     
     // Elementos DOM
     const searchInput = document.getElementById('searchInput');
@@ -324,33 +385,36 @@
     const tableBody = document.getElementById('tableBody');
     const tabsList = document.getElementById('tabsList');
     const loading = document.getElementById('loading');
+    const resetColsBtn = document.getElementById('resetColsBtn');
+    
+    // Variáveis para redimensionamento
+    let isResizing = false;
+    let currentColumnIndex = null;
+    let startX = 0;
+    let startWidth = 0;
+    let currentTh = null;
     
     function mostrarLoading(show) {
         loading.classList.toggle('show', show);
     }
     
-    // Extrai número de strings como "R$ 1.234,56" ou "1234.56"
     function extrairNumero(valor) {
         if (!valor && valor !== 0) return 0;
         let str = valor.toString().trim();
-        // Remove R$ e espaços, troca ponto de milhar e vírgula decimal
         let limpo = str.replace(/R\$/, '').replace(/\./g, '').replace(',', '.').trim();
         let num = parseFloat(limpo.replace(/[^\d.-]/g, ''));
         return isNaN(num) ? 0 : num;
     }
     
-    // Detecta automaticamente quais colunas são numéricas (financeiras) baseado no conteúdo
     function identificarColunasFinanceiras(dados, colunas) {
         if (!dados.length || !colunas.length) return [];
-        
         let colunasFinanceiras = [];
         for (let col of colunas) {
-            let amostra = dados.slice(0, 50); // pega até 50 registros para análise
+            let amostra = dados.slice(0, 50);
             let temValorFinanceiro = false;
             for (let row of amostra) {
                 let valor = row[col];
                 if (valor && typeof valor === 'string') {
-                    // Verifica padrão de moeda brasileira ou número com vírgula/ponto
                     if (/R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2}/.test(valor) || /^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(valor) || /^\d+(?:\.\d+)?$/.test(valor)) {
                         temValorFinanceiro = true;
                         break;
@@ -360,11 +424,9 @@
                     break;
                 }
             }
-            // Também considera nomes de coluna que sugerem valores
             let nomeLower = col.toLowerCase();
             if (nomeLower.includes('valor') || nomeLower.includes('custeio') || nomeLower.includes('capital') || 
-                nomeLower.includes('repasse') || nomeLower.includes('total') || nomeLower.includes('montante') ||
-                nomeLower.includes('preço') || nomeLower.includes('custo')) {
+                nomeLower.includes('repasse') || nomeLower.includes('total') || nomeLower.includes('montante')) {
                 temValorFinanceiro = true;
             }
             if (temValorFinanceiro) colunasFinanceiras.push(col);
@@ -372,7 +434,6 @@
         return colunasFinanceiras;
     }
     
-    // Soma os valores das colunas financeiras para uma linha
     function somarValoresLinha(linha, colunasFinanceiras) {
         let soma = 0;
         for (let col of colunasFinanceiras) {
@@ -393,7 +454,6 @@
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
     }
     
-    // Cria texto de busca unificado para cada linha (todas as colunas)
     function criarTextoBusca(linha, colunas) {
         let texto = '';
         for (let col of colunas) {
@@ -405,7 +465,6 @@
         return texto.trim();
     }
     
-    // Prepara os dados: adiciona metadados (busca, valores numéricos)
     function prepararDados(dados, colunas, colunasFinanceiras) {
         for (let i = 0; i < dados.length; i++) {
             dados[i]._busca = criarTextoBusca(dados[i], colunas);
@@ -414,7 +473,131 @@
         return dados;
     }
     
-    // Filtro de texto em todas as colunas
+    // Salvar larguras no localStorage
+    function salvarLarguras() {
+        if (!abaAtual) return;
+        const key = `col_widths_${abaAtual}`;
+        localStorage.setItem(key, JSON.stringify(largurasColunas));
+    }
+    
+    // Carregar larguras salvas
+    function carregarLargurasSalvas() {
+        const key = `col_widths_${abaAtual}`;
+        const salvo = localStorage.getItem(key);
+        if (salvo) {
+            try {
+                largurasColunas = JSON.parse(salvo);
+            } catch(e) { largurasColunas = {}; }
+        } else {
+            largurasColunas = {};
+        }
+    }
+    
+    // Aplicar larguras às colunas da tabela
+    function aplicarLarguras() {
+        if (!tableHead.rows[0]) return;
+        const ths = tableHead.rows[0].cells;
+        for (let i = 0; i < ths.length; i++) {
+            const colName = colunasAtuais[i];
+            if (largurasColunas[colName] && ths[i]) {
+                ths[i].style.width = largurasColunas[colName] + 'px';
+                ths[i].style.minWidth = largurasColunas[colName] + 'px';
+                // Aplica também nas células do corpo (manter consistência)
+                const allRows = tableBody.querySelectorAll('tr');
+                for (let row of allRows) {
+                    if (row.cells[i]) {
+                        row.cells[i].style.width = largurasColunas[colName] + 'px';
+                        row.cells[i].style.minWidth = largurasColunas[colName] + 'px';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Resetar larguras para automático
+    function resetarLarguras() {
+        largurasColunas = {};
+        salvarLarguras();
+        const ths = tableHead.rows[0]?.cells;
+        if (ths) {
+            for (let i = 0; i < ths.length; i++) {
+                ths[i].style.width = '';
+                ths[i].style.minWidth = '';
+                // Resetar células do corpo
+                const allRows = tableBody.querySelectorAll('tr');
+                for (let row of allRows) {
+                    if (row.cells[i]) {
+                        row.cells[i].style.width = '';
+                        row.cells[i].style.minWidth = '';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Inicializar manipuladores de redimensionamento
+    function initResizeHandlers() {
+        const ths = document.querySelectorAll('#tableHead th');
+        ths.forEach((th, index) => {
+            // Remove handle antigo se existir
+            const oldHandle = th.querySelector('.resize-handle');
+            if (oldHandle) oldHandle.remove();
+            
+            const handle = document.createElement('div');
+            handle.className = 'resize-handle';
+            handle.setAttribute('data-index', index);
+            th.style.position = 'relative';
+            th.appendChild(handle);
+            
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentColumnIndex = index;
+                currentTh = th;
+                startX = e.clientX;
+                startWidth = th.offsetWidth;
+                document.body.classList.add('resizing');
+                
+                const onMouseMove = (moveEvent) => {
+                    if (!isResizing) return;
+                    const diff = moveEvent.clientX - startX;
+                    let newWidth = startWidth + diff;
+                    if (newWidth < 50) newWidth = 50;
+                    
+                    const colName = colunasAtuais[currentColumnIndex];
+                    if (colName) {
+                        largurasColunas[colName] = newWidth;
+                        th.style.width = newWidth + 'px';
+                        th.style.minWidth = newWidth + 'px';
+                        
+                        // Aplica a mesma largura para todas as células da coluna
+                        const rows = tableBody.querySelectorAll('tr');
+                        for (let row of rows) {
+                            if (row.cells[currentColumnIndex]) {
+                                row.cells[currentColumnIndex].style.width = newWidth + 'px';
+                                row.cells[currentColumnIndex].style.minWidth = newWidth + 'px';
+                            }
+                        }
+                    }
+                };
+                
+                const onMouseUp = () => {
+                    isResizing = false;
+                    currentColumnIndex = null;
+                    currentTh = null;
+                    document.body.classList.remove('resizing');
+                    salvarLarguras();
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+    }
+    
     function filtrarDados(termo) {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
@@ -432,7 +615,6 @@
                 dadosFiltrados = resultado;
             }
             
-            // Atualiza estatísticas com base nas colunas financeiras detectadas
             let colunasFin = identificarColunasFinanceiras(dadosCompletos, colunasAtuais);
             let soma = calcularSomaTotal(dadosFiltrados, colunasFin);
             filteredCountSpan.innerText = dadosFiltrados.length.toLocaleString();
@@ -442,29 +624,37 @@
         }, 20);
     }
     
-    // Renderiza a tabela com qualquer quantidade de colunas (dinâmico)
     function renderizarTabela(dados, termo = '') {
         requestAnimationFrame(() => {
             if (!colunasAtuais.length) {
-                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.</tr>';
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2</td></tr>';
                 return;
             }
             
-            // Cabeçalho dinâmico (se não existir ou se for recriado)
+            // Recria cabeçalho mantendo larguras salvas
             if (tableHead.children.length === 0 || tableHead.children[0].cells.length !== colunasAtuais.length) {
                 let tr = document.createElement('tr');
                 for (let col of colunasAtuais) {
                     let th = document.createElement('th');
                     th.innerText = col;
+                    th.style.position = 'relative';
                     tr.appendChild(th);
                 }
                 tableHead.innerHTML = '';
                 tableHead.appendChild(tr);
+            } else {
+                // Atualiza textos do cabeçalho caso tenha mudado
+                const ths = tableHead.rows[0].cells;
+                for (let i = 0; i < colunasAtuais.length; i++) {
+                    if (ths[i]) ths[i].innerText = colunasAtuais[i];
+                }
             }
             
             if (dados.length === 0) {
                 let colspan = colunasAtuais.length;
-                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado para esta pesquisa.</tr>`;
+                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado para esta pesquisa.</td></tr>`;
+                initResizeHandlers();
+                aplicarLarguras();
                 return;
             }
             
@@ -480,7 +670,6 @@
                     let valorCelula = linha[col] !== undefined && linha[col] !== null ? linha[col].toString() : '';
                     let td = document.createElement('td');
                     
-                    // Destaca o termo pesquisado em qualquer célula (case insensitive)
                     if (termo && termoLower && valorCelula.toLowerCase().includes(termoLower)) {
                         let regex = new RegExp(`(${termoLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
                         let novoHtml = valorCelula.replace(regex, `<mark>$1</mark>`);
@@ -489,12 +678,18 @@
                         td.innerText = valorCelula;
                     }
                     
-                    // Se for uma coluna que contém valores monetários, aplica classe de destaque
                     let nomeColLower = col.toLowerCase();
                     if (nomeColLower.includes('valor') || nomeColLower.includes('custeio') || nomeColLower.includes('capital') ||
-                        nomeColLower.includes('repasse') || nomeColLower.includes('total') || nomeColLower.includes('preço')) {
+                        nomeColLower.includes('repasse') || nomeColLower.includes('total')) {
                         td.classList.add('valor-highlight');
                     }
+                    
+                    // Aplica largura salva se existir
+                    if (largurasColunas[col]) {
+                        td.style.width = largurasColunas[col] + 'px';
+                        td.style.minWidth = largurasColunas[col] + 'px';
+                    }
+                    
                     tr.appendChild(td);
                 }
                 fragment.appendChild(tr);
@@ -502,6 +697,18 @@
             
             tableBody.innerHTML = '';
             tableBody.appendChild(fragment);
+            
+            // Aplica larguras salvas no cabeçalho
+            for (let j = 0; j < colunasAtuais.length; j++) {
+                let col = colunasAtuais[j];
+                let th = tableHead.rows[0]?.cells[j];
+                if (th && largurasColunas[col]) {
+                    th.style.width = largurasColunas[col] + 'px';
+                    th.style.minWidth = largurasColunas[col] + 'px';
+                }
+            }
+            
+            initResizeHandlers();
         });
     }
     
@@ -512,7 +719,6 @@
         totalValueSpan.innerText = formatarMoeda(totalSoma);
     }
     
-    // Parse de CSV robusto (lida com aspas e vírgulas dentro de campos)
     function parseCSV(csvStr) {
         const linhas = [];
         let linhaAtual = [];
@@ -551,10 +757,8 @@
         return linhas;
     }
     
-    // Busca dinâmica: carrega qualquer aba e detecta cabeçalho na primeira linha
     async function buscarDados(sheetName) {
         try {
-            // URL sem range fixo para capturar todas as colunas
             let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
             let response = await fetch(url);
             if (!response.ok) throw new Error("Falha ao buscar dados");
@@ -562,11 +766,9 @@
             let linhas = parseCSV(csv);
             
             if (!linhas || linhas.length < 2) {
-                console.warn(`Aba ${sheetName} vazia ou com apenas cabeçalho.`);
                 return { colunas: [], dados: [] };
             }
             
-            // Primeira linha = cabeçalho (colunas)
             let colunas = linhas[0].map(c => c.trim()).filter(c => c !== '');
             if (colunas.length === 0) return { colunas: [], dados: [] };
             
@@ -576,11 +778,9 @@
                 let obj = {};
                 for (let j = 0; j < colunas.length; j++) {
                     let valor = j < linhaValores.length ? linhaValores[j] : '';
-                    // Limpa caracteres estranhos e converte se possível
                     if (typeof valor === 'string') valor = valor.replace(/^["']|["']$/g, '');
                     obj[colunas[j]] = valor;
                 }
-                // Verifica se pelo menos alguma coluna tem conteúdo relevante
                 let temConteudo = Object.values(obj).some(v => v && v.toString().trim() !== '');
                 if (temConteudo) dados.push(obj);
             }
@@ -592,21 +792,19 @@
         }
     }
     
-    // Carregar aba selecionada com detecção automática de colunas e valores
     async function carregarAba(tabId) {
         let aba = abas.find(t => t.id === tabId);
         if (!aba) return;
         
         abaAtual = tabId;
         
-        // Atualizar classe ativa nos botões
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados e detectando colunas...</tr>';
-        tableHead.innerHTML = ''; // limpa cabeçalho anterior
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...</td></tr>';
+        tableHead.innerHTML = '';
         
         let { colunas, dados } = await buscarDados(aba.sheetName);
         
@@ -614,19 +812,16 @@
             dadosCompletos = [];
             colunasAtuais = [];
             dadosFiltrados = [];
-            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}". Verifique o nome da aba e se existe cabeçalho na primeira linha.</tr>`;
+            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".</td></tr>`;
             totalRecordsSpan.innerText = '0';
             totalValueSpan.innerText = formatarMoeda(0);
-            filteredCountSpan.innerText = '0';
-            filteredSumSpan.innerText = formatarMoeda(0);
             mostrarLoading(false);
             return;
         }
         
-        // Identifica colunas financeiras automaticamente
-        let colunasFinanceiras = identificarColunasFinanceiras(dados, colunas);
+        carregarLargurasSalvas();
         
-        // Prepara dados com texto de busca e valores financeiros
+        let colunasFinanceiras = identificarColunasFinanceiras(dados, colunas);
         let dadosPreparados = prepararDados(dados, colunas, colunasFinanceiras);
         
         dadosCompletos = dadosPreparados;
@@ -635,15 +830,9 @@
         filtrarDados('');
         atualizarCards(colunasFinanceiras);
         
-        // Exibe no console informações úteis para debug
-        console.log(`✅ Aba "${aba.sheetName}" carregada: ${dadosCompletos.length} registros, ${colunas.length} colunas detectadas.`);
-        console.log(`📊 Colunas: ${colunas.join(', ')}`);
-        console.log(`💰 Colunas financeiras detectadas: ${colunasFinanceiras.length ? colunasFinanceiras.join(', ') : 'nenhuma (use valores numéricos)'}`);
-        
         mostrarLoading(false);
     }
     
-    // Renderiza as abas no topo (sem botão de nova consulta, apenas as abas fixas)
     function renderizarAbas() {
         let botoes = [];
         for (let aba of abas) {
@@ -655,26 +844,24 @@
             btn.onclick = () => carregarAba(aba.id);
             botoes.push(btn);
         }
-        
         tabsList.innerHTML = '';
         for (let btn of botoes) tabsList.appendChild(btn);
     }
     
     function configurarBusca() {
-        searchInput.addEventListener('input', (e) => {
-            filtrarDados(e.target.value);
-        });
+        searchInput.addEventListener('input', (e) => filtrarDados(e.target.value));
     }
+    
+    resetColsBtn.addEventListener('click', () => {
+        resetarLarguras();
+        renderizarTabela(dadosFiltrados, searchInput.value);
+    });
     
     async function init() {
         configurarBusca();
         renderizarAbas();
-        // Carrega a primeira aba por padrão (GeradorManut)
         if (abas.length > 0) {
             await carregarAba(abas[0].id);
-        } else {
-            console.warn("Nenhuma aba configurada.");
-            tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma aba definida. Adicione abas no array "abas".</tr>';
         }
     }
     
