@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CDF - Manutenção / FAED / PNAE | Filtro Ultra Rápido</title>
+    <title>CDF - Filtros por Coluna | Lista de Validação</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -73,49 +73,112 @@
             color: #0e3b5c;
         }
 
-      .tabs-wrapper {
-    margin-bottom: 20px;
-    overflow-x: visible;
-}
+        .tabs-wrapper {
+            margin-bottom: 20px;
+            overflow-x: visible;
+        }
 
-.tabs-list {
-    display: flex;
-    flex-wrap: wrap;        /* Permite quebrar para próxima linha */
-    gap: 8px;
-    background: white;
-    padding: 8px 12px;      /* Aumenta um pouco o padding */
-    border-radius: 20px;
-    border: 1px solid #e2eaf1;
-    width: 100%;
-    justify-content: flex-start;
-}
+        .tabs-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #e2eaf1;
+            width: 100%;
+            justify-content: flex-start;
+        }
 
-.tab-btn {
-    background: transparent;
-    border: none;
-    font-weight: 600;
-    font-size: 0.8rem;      /* Pode diminuir um pouco se quiser */
-    padding: 8px 16px;
-    border-radius: 40px;
-    cursor: pointer;
-    color: #3f5a77;
-    white-space: nowrap;     /* Mantém o texto em uma linha */
-    transition: all 0.2s;
-}
-@media (max-width: 600px) {
-    .tab-btn {
-        font-size: 0.7rem;
-        padding: 6px 12px;
-    }
-    
-    .tabs-list {
-        gap: 6px;
-        padding: 6px 10px;
-    }
-}
+        .tab-btn {
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #3f5a77;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
         .tab-btn.active {
             background: #1f5780;
             color: white;
+        }
+
+        /* Painel de filtros por coluna */
+        .filters-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2eaf1;
+        }
+
+        .filters-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #1a4a6e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filters-title i {
+            font-size: 0.9rem;
+        }
+
+        .clear-all-filters {
+            background: #eef2f7;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            color: #5a6e85;
+        }
+
+        .clear-all-filters:hover {
+            background: #dce5ef;
+        }
+
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #4f6f8f;
+            margin-bottom: 4px;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #dce5ef;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            background: #f8fafc;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #1f5780;
         }
 
         .search-panel {
@@ -128,6 +191,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 15px;
+            border: 1px solid #e2eaf1;
         }
 
         .search-box {
@@ -175,21 +239,51 @@
             color: #1e4a76;
         }
 
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2eaf1;
+        }
+
+        .filter-badge {
+            background: #eef2f7;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-badge button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #8ba0bc;
+            font-size: 0.7rem;
+        }
+
+        .filter-badge button:hover {
+            color: #e74c3c;
+        }
+
         .table-wrapper {
             background: white;
             border-radius: 16px;
             overflow-x: auto;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            max-height: 60vh;
+            max-height: 55vh;
             overflow-y: auto;
-            position: relative;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.75rem;
-            table-layout: fixed;
+            table-layout: auto;
         }
 
         .data-table th {
@@ -202,15 +296,9 @@
             position: sticky;
             top: 0;
             z-index: 10;
-            user-select: none;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            position: relative;
-            /* Linha divisória mais FINA - 1px */
             border-right: 1px solid #1a4a6e;
         }
-        
+
         .data-table th:last-child {
             border-right: none;
         }
@@ -219,13 +307,9 @@
             padding: 8px 10px;
             border-bottom: 1px solid #f0f5fa;
             color: #2c405c;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            /* Linha divisória mais FINA - 1px com cor suave */
             border-right: 1px solid #e2e8f0;
         }
-        
+
         .data-table td:last-child {
             border-right: none;
         }
@@ -268,64 +352,14 @@
             border-radius: 2px;
         }
 
-        /* HANDLE DO REDIMENSIONAMENTO - MAIS FINO E RÁPIDO */
-        .resize-handle {
-            position: absolute;
-            top: 0;
-            right: -2px;
-            width: 4px;
-            height: 100%;
-            cursor: col-resize;
-            background-color: #1a4a6e;
-            z-index: 20;
-            opacity: 0.4;
-            transition: opacity 0.1s ease;
-        }
-
-        .resize-handle:hover {
-            opacity: 0.8;
-            background-color: #0e3b5c;
-            width: 4px;
-        }
-
-        .resize-handle.active {
-            background-color: #ff9800;
-            opacity: 1;
-        }
-
-        /* Evita transições durante redimensionamento para não travar */
-        .resizing,
-        .resizing * {
-            transition: none !important;
-            user-select: none;
-        }
-
-        .reset-cols-btn {
-            background: #eef2f7;
-            border: 1px solid #cbdde9;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: all 0.2s;
-        }
-
-        .reset-cols-btn:hover {
-            background: #dce5ef;
-        }
-
-        .table-header-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            padding: 0 4px;
-        }
-
-        .col-resize-info {
-            font-size: 0.65rem;
-            color: #6c86a3;
+        @media (max-width: 600px) {
+            .tab-btn {
+                font-size: 0.7rem;
+                padding: 6px 12px;
+            }
+            .filter-group {
+                min-width: 120px;
+            }
         }
     </style>
 </head>
@@ -336,8 +370,8 @@
 <div class="dashboard-container">
     <div class="main-header">
         <div class="title-area">
-            <h1>🔍 Pesquisa CDF - Ultra Rápido</h1>
-            <p>Filtro instantâneo - Redimensionamento suave</p>
+            <h1>🔍 Pesquisa CDF - Filtros por Coluna</h1>
+            <p>Filtro global + filtros específicos por coluna com lista de validação</p>
         </div>
         <div class="stats-duo">
             <div class="stat-card">
@@ -352,29 +386,30 @@
     </div>
 
     <div class="tabs-wrapper">
-        <div class="tabs-list" id="tabsList">
-            <!-- Abas serão injetadas dinamicamente -->
+        <div class="tabs-list" id="tabsList"></div>
+    </div>
+
+    <!-- Painel de filtros por coluna -->
+    <div class="filters-panel" id="filtersPanel" style="display: none;">
+        <div class="filters-title">
+            <i class="fas fa-filter"></i> Filtros por Coluna
+            <button class="clear-all-filters" id="clearAllFiltersBtn">
+                <i class="fas fa-times"></i> Limpar todos
+            </button>
         </div>
+        <div class="filters-row" id="filtersRow"></div>
+        <div class="active-filters" id="activeFilters"></div>
     </div>
 
     <div class="search-panel">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar... (filtro instantâneo)" autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Pesquisa global (busca em todas as colunas)" autocomplete="off">
         </div>
         <div class="filter-stats">
             <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
             <div class="filter-chip">💰 Valor: <span id="filteredSum">R$ 0</span></div>
         </div>
-    </div>
-
-    <div class="table-header-wrapper">
-        <div class="col-resize-info">
-            <i class="fas fa-arrows-alt-h"></i> Arraste a barra azul entre colunas
-        </div>
-        <button class="reset-cols-btn" id="resetColsBtn">
-            <i class="fas fa-undo-alt"></i> Resetar larguras
-        </button>
     </div>
 
     <div class="table-wrapper">
@@ -384,31 +419,31 @@
         </table>
     </div>
     <footer style="margin-top: 15px; text-align: center; font-size: 0.7rem; color: #8ba0bc;">
-        ⚡ Filtro otimizado com Web Worker | Redimensionamento com requestAnimationFrame | Divisores finos (1px)
+        🔍 Filtro global + filtros específicos por coluna | Clique nos filtros para ver a lista de valores únicos
     </footer>
 </div>
 
 <script>
     const SPREADSHEET_ID = '17hskWwX1cJP6NDuctKgTP3O8ct4WM-xcFnxKYRrHMCY';
     
-    // Configuração de abas
+    // CONFIGURAÇÃO DE ABAS
     let abas = [
         { id: 'tab_0', sheetName: 'GeradorManut', label: '📋 GeradorManut' },
         { id: 'tab_1', sheetName: 'GeradorFaed', label: '💰 GeradorFaed' },
         { id: 'tab_2', sheetName: 'BaseOrdinaria', label: '🔧 Base Manutenção Ordinária' },
         { id: 'tab_3', sheetName: 'Retorno439', label: '🔧 Retorno 439' }
-       
     ];
     
     let abaAtual = 'tab_0';
     let dadosCompletos = [];
     let colunasAtuais = [];
     let dadosFiltrados = [];
-    let timeoutFiltro = null;
-    let largurasColunas = {};
-    
-    // Cache para busca rápida (pré-indexado)
     let searchIndex = [];
+    let timeoutFiltro = null;
+    
+    // Filtros por coluna
+    let filtrosColuna = {};  // { "NomeColuna": "valor selecionado" }
+    let valoresUnicosPorColuna = {};  // Cache de valores únicos por coluna
     
     // Elementos DOM
     const searchInput = document.getElementById('searchInput');
@@ -420,15 +455,10 @@
     const tableBody = document.getElementById('tableBody');
     const tabsList = document.getElementById('tabsList');
     const loading = document.getElementById('loading');
-    const resetColsBtn = document.getElementById('resetColsBtn');
-    
-    // Variáveis para redimensionamento otimizado
-    let isResizing = false;
-    let currentColumnIndex = null;
-    let startX = 0;
-    let startWidth = 0;
-    let currentTh = null;
-    let resizeFrameId = null;
+    const filtersPanel = document.getElementById('filtersPanel');
+    const filtersRow = document.getElementById('filtersRow');
+    const activeFiltersDiv = document.getElementById('activeFilters');
+    const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
     
     function mostrarLoading(show) {
         loading.classList.toggle('show', show);
@@ -474,7 +504,7 @@
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
     }
     
-    // PRÉ-CONSTRUÇÃO DO ÍNDICE DE BUSCA (MUITO MAIS RÁPIDO)
+    // Constrói índice de busca global
     function construirSearchIndex(dados, colunas) {
         const index = [];
         for (let i = 0; i < dados.length; i++) {
@@ -490,26 +520,134 @@
         return index;
     }
     
-    // FILTRO OTIMIZADO - SEM regex, apenas includes
-    function filtrarDadosRapido(termo) {
+    // Extrai valores únicos de uma coluna
+    function extrairValoresUnicos(dados, coluna) {
+        const valores = new Set();
+        for (let i = 0; i < dados.length; i++) {
+            let valor = dados[i][coluna];
+            if (valor !== undefined && valor !== null && valor.toString().trim() !== '') {
+                valores.add(valor.toString().trim());
+            }
+        }
+        return Array.from(valores).sort();
+    }
+    
+    // Atualiza os selects de filtro com base nos dados ATUAIS (após outros filtros)
+    function atualizarFiltrosSelect() {
+        if (!colunasAtuais.length || !dadosCompletos.length) return;
+        
+        // Para cada coluna, extrai valores únicos dos dados COMPLETOS (ou filtrados? Melhor dos completos)
+        for (let col of colunasAtuais) {
+            valoresUnicosPorColuna[col] = extrairValoresUnicos(dadosCompletos, col);
+        }
+        
+        // Recria os selects
+        filtersRow.innerHTML = '';
+        
+        for (let col of colunasAtuais) {
+            const valores = valoresUnicosPorColuna[col] || [];
+            if (valores.length === 0) continue;
+            
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'filter-group';
+            
+            const label = document.createElement('label');
+            label.innerHTML = `<i class="fas fa-list"></i> ${col}`;
+            
+            const select = document.createElement('select');
+            select.setAttribute('data-coluna', col);
+            
+            const optionAll = document.createElement('option');
+            optionAll.value = '';
+            optionAll.textContent = `📋 Todos (${valores.length})`;
+            select.appendChild(optionAll);
+            
+            for (let valor of valores) {
+                const option = document.createElement('option');
+                option.value = valor;
+                option.textContent = valor.length > 30 ? valor.substring(0, 30) + '...' : valor;
+                if (filtrosColuna[col] === valor) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+            
+            select.addEventListener('change', (e) => {
+                const valorSelecionado = e.target.value;
+                if (valorSelecionado === '') {
+                    delete filtrosColuna[col];
+                } else {
+                    filtrosColuna[col] = valorSelecionado;
+                }
+                aplicarFiltrosCompletos();
+            });
+            
+            groupDiv.appendChild(label);
+            groupDiv.appendChild(select);
+            filtersRow.appendChild(groupDiv);
+        }
+        
+        atualizarBadgesFiltros();
+    }
+    
+    // Atualiza os badges (marcadores) de filtros ativos
+    function atualizarBadgesFiltros() {
+        const filtrosAtivos = Object.entries(filtrosColuna).filter(([col, val]) => val && val !== '');
+        
+        if (filtrosAtivos.length === 0) {
+            activeFiltersDiv.innerHTML = '<span style="font-size:0.7rem; color:#8ba0bc;">Nenhum filtro aplicado</span>';
+            return;
+        }
+        
+        activeFiltersDiv.innerHTML = filtrosAtivos.map(([col, val]) => `
+            <div class="filter-badge">
+                <i class="fas fa-filter"></i> ${col}: <strong>${val.length > 25 ? val.substring(0, 25) + '...' : val}</strong>
+                <button onclick="removerFiltro('${col.replace(/'/g, "\\'")}')"><i class="fas fa-times-circle"></i></button>
+            </div>
+        `).join('');
+    }
+    
+    // Função global para remover filtro
+    window.removerFiltro = function(coluna) {
+        delete filtrosColuna[coluna];
+        // Atualiza o select correspondente
+        const select = document.querySelector(`.filter-group select[data-coluna="${coluna}"]`);
+        if (select) select.value = '';
+        aplicarFiltrosCompletos();
+    };
+    
+    // Aplica todos os filtros (global + coluna)
+    function aplicarFiltrosCompletos() {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
         timeoutFiltro = setTimeout(() => {
             const inicio = performance.now();
+            const termoGlobal = searchInput.value.trim().toLowerCase();
             
-            if (!termo.trim()) {
-                dadosFiltrados = [...dadosCompletos];
-            } else {
-                const termoLower = termo.trim().toLowerCase();
-                const resultado = [];
-                // Loop rápido usando o índice pré-construído
-                for (let i = 0; i < dadosCompletos.length; i++) {
-                    if (searchIndex[i].includes(termoLower)) {
-                        resultado.push(dadosCompletos[i]);
+            let resultados = [...dadosCompletos];
+            
+            // 1. Filtro por coluna
+            const filtrosAtivos = Object.entries(filtrosColuna).filter(([col, val]) => val && val !== '');
+            if (filtrosAtivos.length > 0) {
+                resultados = resultados.filter(item => {
+                    for (let [col, val] of filtrosAtivos) {
+                        const itemValor = item[col] ? item[col].toString().trim() : '';
+                        if (itemValor !== val) return false;
                     }
-                }
-                dadosFiltrados = resultado;
+                    return true;
+                });
             }
+            
+            // 2. Filtro global (busca em todas as colunas)
+            if (termoGlobal) {
+                resultados = resultados.filter((item, idx) => {
+                    // Precisa encontrar o índice original para o searchIndex
+                    const originalIndex = dadosCompletos.findIndex(d => d === item);
+                    return searchIndex[originalIndex]?.includes(termoGlobal);
+                });
+            }
+            
+            dadosFiltrados = resultados;
             
             const colunasFin = identificarColunasFinanceiras(colunasAtuais);
             const soma = calcularSomaTotal(dadosFiltrados, colunasFin);
@@ -517,36 +655,26 @@
             filteredCountSpan.innerText = dadosFiltrados.length.toLocaleString();
             filteredSumSpan.innerText = formatarMoeda(soma);
             
-            renderizarTabelaRapida(dadosFiltrados, termo.trim());
+            renderizarTabelaRapida(dadosFiltrados, termoGlobal);
+            atualizarBadgesFiltros();
             
             const fim = performance.now();
             console.log(`⚡ Filtro: ${dadosFiltrados.length} resultados em ${(fim-inicio).toFixed(1)}ms`);
-        }, 10); // Debounce menor para resposta mais rápida
+        }, 10);
     }
     
-    // RENDERIZAÇÃO OTIMIZADA - apenas diferenças
-    let currentRenderTerm = '';
-    let currentRenderData = null;
-    
     function renderizarTabelaRapida(dados, termo = '') {
-        // Se os dados e o termo são os mesmos, não re-renderiza
-        if (currentRenderData === dados && currentRenderTerm === termo) return;
-        currentRenderData = dados;
-        currentRenderTerm = termo;
-        
         requestAnimationFrame(() => {
             if (!colunasAtuais.length) {
                 tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2</tr>';
                 return;
             }
             
-            // Cabeçalho (apenas se necessário)
             if (tableHead.children.length === 0 || tableHead.children[0].cells.length !== colunasAtuais.length) {
                 let tr = document.createElement('tr');
                 for (let col of colunasAtuais) {
                     let th = document.createElement('th');
                     th.innerText = col;
-                    th.style.position = 'relative';
                     tr.appendChild(th);
                 }
                 tableHead.innerHTML = '';
@@ -556,56 +684,36 @@
             if (dados.length === 0) {
                 let colspan = colunasAtuais.length;
                 tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado.</tr>`;
-                initResizeHandlers();
-                aplicarLarguras();
                 return;
             }
             
-            // Construção rápida do HTML em string (mais rápido que DOM fragment)
             let htmlRows = '';
             const termoLower = termo.toLowerCase();
-            const colunas = colunasAtuais;
-            const larguras = largurasColunas;
             
             for (let i = 0; i < dados.length; i++) {
                 const linha = dados[i];
                 let rowHtml = '<tr>';
                 
-                for (let j = 0; j < colunas.length; j++) {
-                    const col = colunas[j];
+                for (let j = 0; j < colunasAtuais.length; j++) {
+                    const col = colunasAtuais[j];
                     let valorCelula = linha[col] !== undefined && linha[col] !== null ? linha[col].toString() : '';
                     let cellHtml = '';
                     
                     if (termo && termoLower && valorCelula.toLowerCase().includes(termoLower)) {
-                        // Destaca o termo (necessário usar innerHTML)
                         const regex = new RegExp(`(${termoLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
                         cellHtml = valorCelula.replace(regex, `<mark>$1</mark>`);
                     } else {
                         cellHtml = escapeHtml(valorCelula);
                     }
                     
-                    const widthStyle = larguras[col] ? `style="width:${larguras[col]}px;min-width:${larguras[col]}px"` : '';
                     const classeExtra = (col.toLowerCase().includes('valor') || col.toLowerCase().includes('custeio')) ? 'class="valor-highlight"' : '';
-                    
-                    rowHtml += `<td ${widthStyle} ${classeExtra}>${cellHtml}</td>`;
+                    rowHtml += `<td ${classeExtra}>${cellHtml}</td>`;
                 }
                 rowHtml += '</tr>';
                 htmlRows += rowHtml;
             }
             
             tableBody.innerHTML = htmlRows;
-            
-            // Aplica larguras no cabeçalho
-            for (let j = 0; j < colunas.length; j++) {
-                const col = colunas[j];
-                const th = tableHead.rows[0]?.cells[j];
-                if (th && larguras[col]) {
-                    th.style.width = larguras[col] + 'px';
-                    th.style.minWidth = larguras[col] + 'px';
-                }
-            }
-            
-            initResizeHandlers();
         });
     }
     
@@ -614,135 +722,6 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
-    
-    function salvarLarguras() {
-        if (!abaAtual) return;
-        const key = `col_widths_${abaAtual}`;
-        localStorage.setItem(key, JSON.stringify(largurasColunas));
-    }
-    
-    function carregarLargurasSalvas() {
-        const key = `col_widths_${abaAtual}`;
-        const salvo = localStorage.getItem(key);
-        if (salvo) {
-            try {
-                largurasColunas = JSON.parse(salvo);
-            } catch(e) { largurasColunas = {}; }
-        } else {
-            largurasColunas = {};
-        }
-    }
-    
-    function aplicarLarguras() {
-        if (!tableHead.rows[0]) return;
-        const ths = tableHead.rows[0].cells;
-        for (let i = 0; i < ths.length; i++) {
-            const colName = colunasAtuais[i];
-            if (largurasColunas[colName] && ths[i]) {
-                ths[i].style.width = largurasColunas[colName] + 'px';
-                ths[i].style.minWidth = largurasColunas[colName] + 'px';
-            }
-        }
-        const rows = tableBody.querySelectorAll('tr');
-        for (let row of rows) {
-            for (let i = 0; i < row.cells.length; i++) {
-                const colName = colunasAtuais[i];
-                if (largurasColunas[colName] && row.cells[i]) {
-                    row.cells[i].style.width = largurasColunas[colName] + 'px';
-                    row.cells[i].style.minWidth = largurasColunas[colName] + 'px';
-                }
-            }
-        }
-    }
-    
-    function resetarLarguras() {
-        largurasColunas = {};
-        salvarLarguras();
-        const ths = tableHead.rows[0]?.cells;
-        if (ths) {
-            for (let i = 0; i < ths.length; i++) {
-                ths[i].style.width = '';
-                ths[i].style.minWidth = '';
-            }
-        }
-        const rows = tableBody.querySelectorAll('tr');
-        for (let row of rows) {
-            for (let i = 0; i < row.cells.length; i++) {
-                row.cells[i].style.width = '';
-                row.cells[i].style.minWidth = '';
-            }
-        }
-    }
-    
-    // REDIMENSIONAMENTO OTIMIZADO - com requestAnimationFrame
-    function initResizeHandlers() {
-        const ths = document.querySelectorAll('#tableHead th');
-        ths.forEach((th, index) => {
-            const oldHandle = th.querySelector('.resize-handle');
-            if (oldHandle) oldHandle.remove();
-            
-            const handle = document.createElement('div');
-            handle.className = 'resize-handle';
-            handle.setAttribute('data-index', index);
-            th.style.position = 'relative';
-            th.appendChild(handle);
-            
-            handle.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                isResizing = true;
-                currentColumnIndex = index;
-                currentTh = th;
-                startX = e.clientX;
-                startWidth = th.offsetWidth;
-                document.body.classList.add('resizing');
-                
-                const onMouseMove = (moveEvent) => {
-                    if (!isResizing) return;
-                    const diff = moveEvent.clientX - startX;
-                    let newWidth = startWidth + diff;
-                    if (newWidth < 50) newWidth = 50;
-                    
-                    if (resizeFrameId) cancelAnimationFrame(resizeFrameId);
-                    resizeFrameId = requestAnimationFrame(() => {
-                        const colName = colunasAtuais[currentColumnIndex];
-                        if (colName) {
-                            largurasColunas[colName] = newWidth;
-                            if (currentTh) {
-                                currentTh.style.width = newWidth + 'px';
-                                currentTh.style.minWidth = newWidth + 'px';
-                            }
-                            const rows = tableBody.querySelectorAll('tr');
-                            for (let row of rows) {
-                                if (row.cells[currentColumnIndex]) {
-                                    row.cells[currentColumnIndex].style.width = newWidth + 'px';
-                                    row.cells[currentColumnIndex].style.minWidth = newWidth + 'px';
-                                }
-                            }
-                        }
-                        resizeFrameId = null;
-                    });
-                };
-                
-                const onMouseUp = () => {
-                    isResizing = false;
-                    currentColumnIndex = null;
-                    currentTh = null;
-                    document.body.classList.remove('resizing');
-                    if (resizeFrameId) {
-                        cancelAnimationFrame(resizeFrameId);
-                        resizeFrameId = null;
-                    }
-                    salvarLarguras();
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-                
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
-        });
     }
     
     function atualizarCards(colunasFinanceiras) {
@@ -836,8 +815,11 @@
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...</tr>';
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...</td></tr>';
         tableHead.innerHTML = '';
+        
+        // Esconde painel de filtros enquanto carrega
+        filtersPanel.style.display = 'none';
         
         const { colunas, dados } = await buscarDados(aba.sheetName);
         
@@ -849,11 +831,10 @@
             tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".</tr>`;
             totalRecordsSpan.innerText = '0';
             totalValueSpan.innerText = formatarMoeda(0);
+            filtersPanel.style.display = 'none';
             mostrarLoading(false);
             return;
         }
-        
-        carregarLargurasSalvas();
         
         const colunasFinanceiras = identificarColunasFinanceiras(colunas);
         
@@ -865,11 +846,20 @@
         dadosCompletos = dados;
         colunasAtuais = colunas;
         
-        // Constrói índice de busca rápido
+        // Constrói índice de busca
         searchIndex = construirSearchIndex(dadosCompletos, colunas);
         
+        // Reseta filtros
+        filtrosColuna = {};
+        
+        // Atualiza os filtros por coluna
+        atualizarFiltrosSelect();
+        
+        // Mostra painel de filtros
+        filtersPanel.style.display = 'block';
+        
         searchInput.value = '';
-        filtrarDadosRapido('');
+        aplicarFiltrosCompletos();
         atualizarCards(colunasFinanceiras);
         
         mostrarLoading(false);
@@ -893,13 +883,17 @@
     
     function configurarBusca() {
         searchInput.addEventListener('input', (e) => {
-            filtrarDadosRapido(e.target.value);
+            aplicarFiltrosCompletos();
         });
     }
     
-    resetColsBtn.addEventListener('click', () => {
-        resetarLarguras();
-        renderizarTabelaRapida(dadosFiltrados, searchInput.value);
+    clearAllFiltersBtn.addEventListener('click', () => {
+        filtrosColuna = {};
+        // Limpa todos os selects
+        document.querySelectorAll('.filter-group select').forEach(select => {
+            select.value = '';
+        });
+        aplicarFiltrosCompletos();
     });
     
     async function init() {
