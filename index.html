@@ -74,35 +74,45 @@
         }
 
         .tabs-wrapper {
-            margin-bottom: 20px;
-            overflow-x: visible;
-        }
+    margin-bottom: 20px;
+    overflow-x: visible;
+}
 
-        .tabs-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            background: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            border: 1px solid #e2eaf1;
-            width: 100%;
-            justify-content: flex-start;
-        }
+.tabs-list {
+    display: flex;
+    flex-wrap: wrap;        /* Permite quebrar para próxima linha */
+    gap: 8px;
+    background: white;
+    padding: 8px 12px;      /* Aumenta um pouco o padding */
+    border-radius: 20px;
+    border: 1px solid #e2eaf1;
+    width: 100%;
+    justify-content: flex-start;
+}
 
-        .tab-btn {
-            background: transparent;
-            border: none;
-            font-weight: 600;
-            font-size: 0.8rem;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            color: #3f5a77;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-
+.tab-btn {
+    background: transparent;
+    border: none;
+    font-weight: 600;
+    font-size: 0.8rem;      /* Pode diminuir um pouco se quiser */
+    padding: 8px 16px;
+    border-radius: 40px;
+    cursor: pointer;
+    color: #3f5a77;
+    white-space: nowrap;     /* Mantém o texto em uma linha */
+    transition: all 0.2s;
+}
+@media (max-width: 600px) {
+    .tab-btn {
+        font-size: 0.7rem;
+        padding: 6px 12px;
+    }
+    
+    .tabs-list {
+        gap: 6px;
+        padding: 6px 10px;
+    }
+}
         .tab-btn.active {
             background: #1f5780;
             color: white;
