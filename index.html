@@ -233,25 +233,26 @@
             outline: none;
         }
 
-        .search-btn {
-            background: #1f5780;
+        .clear-search-btn {
+            background: #eef2f7;
             border: none;
             border-radius: 40px;
             padding: 0 20px;
             height: 42px;
-            color: white;
+            color: #5a6e85;
             font-weight: 600;
             font-size: 0.85rem;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 8px;
             font-family: 'Inter', sans-serif;
         }
 
-        .search-btn:hover {
-            background: #0e3b5c;
+        .clear-search-btn:hover {
+            background: #e2e8f0;
+            color: #1a4a6e;
         }
 
         .filter-stats {
@@ -324,7 +325,7 @@
             border-collapse: collapse;
             font-size: 0.75rem;
             table-layout: auto;
-            min-width: 800px;
+            min-width: 100%;
         }
 
         .data-table th {
@@ -337,7 +338,8 @@
             position: sticky;
             top: 0;
             z-index: 10;
-            border-right: 1px solid #1a4a6e;
+            border-right: 1px solid #dce5ef;
+            white-space: nowrap;
         }
 
         .data-table th:last-child {
@@ -349,10 +351,29 @@
             border-bottom: 1px solid #f0f5fa;
             color: #2c405c;
             border-right: 1px solid #e2e8f0;
+            white-space: nowrap;
         }
 
         .data-table td:last-child {
             border-right: none;
+        }
+
+        /* Permitir que colunas com muito texto quebrem linha se necessário */
+        .data-table td:first-child,
+        .data-table th:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+        }
+
+        .data-table th:first-child {
+            background: #f8fafc;
+            z-index: 15;
+        }
+
+        .data-table tr:hover td:first-child {
+            background-color: #f0f7ff;
         }
 
         .data-table tr:hover td {
@@ -401,11 +422,17 @@
             .filter-group {
                 min-width: 120px;
             }
-            .search-btn span {
+            .clear-search-btn span {
                 display: none;
             }
-            .search-btn {
+            .clear-search-btn {
                 padding: 0 15px;
+            }
+            .data-table td,
+            .data-table th {
+                white-space: normal;
+                word-break: break-word;
+                min-width: 120px;
             }
         }
     </style>
@@ -454,9 +481,9 @@
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Pesquisa global (busca em todas as colunas)" autocomplete="off">
             </div>
-            <button class="search-btn" id="searchButton">
-                <i class="fas fa-search"></i>
-                <span>Pesquisar</span>
+            <button class="clear-search-btn" id="clearSearchBtn">
+                <i class="fas fa-eraser"></i>
+                <span>Limpar pesquisa</span>
             </button>
         </div>
         <div class="filter-stats">
@@ -495,12 +522,12 @@
     let timeoutFiltro = null;
     
     // Filtros por coluna
-    let filtrosColuna = {};  // { "NomeColuna": "valor selecionado" }
-    let valoresUnicosPorColuna = {};  // Cache de valores únicos por coluna
+    let filtrosColuna = {};
+    let valoresUnicosPorColuna = {};
     
     // Elementos DOM
     const searchInput = document.getElementById('searchInput');
-    const searchButton = document.getElementById('searchButton');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
     const filteredCountSpan = document.getElementById('filteredCount');
     const filteredSumSpan = document.getElementById('filteredSum');
     const totalRecordsSpan = document.getElementById('totalRecords');
@@ -558,7 +585,6 @@
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
     }
     
-    // Constrói índice de busca global
     function construirSearchIndex(dados, colunas) {
         const index = [];
         for (let i = 0; i < dados.length; i++) {
@@ -574,7 +600,6 @@
         return index;
     }
     
-    // Extrai valores únicos de uma coluna
     function extrairValoresUnicos(dados, coluna) {
         const valores = new Set();
         for (let i = 0; i < dados.length; i++) {
@@ -586,16 +611,13 @@
         return Array.from(valores).sort();
     }
     
-    // Atualiza os selects de filtro com base nos dados ATUAIS (após outros filtros)
     function atualizarFiltrosSelect() {
         if (!colunasAtuais.length || !dadosCompletos.length) return;
         
-        // Para cada coluna, extrai valores únicos dos dados COMPLETOS (ou filtrados? Melhor dos completos)
         for (let col of colunasAtuais) {
             valoresUnicosPorColuna[col] = extrairValoresUnicos(dadosCompletos, col);
         }
         
-        // Recria os selects
         filtersRow.innerHTML = '';
         
         for (let col of colunasAtuais) {
@@ -644,7 +666,6 @@
         atualizarBadgesFiltros();
     }
     
-    // Atualiza os badges (marcadores) de filtros ativos
     function atualizarBadgesFiltros() {
         const filtrosAtivos = Object.entries(filtrosColuna).filter(([col, val]) => val && val !== '');
         
@@ -661,16 +682,13 @@
         `).join('');
     }
     
-    // Função global para remover filtro
     window.removerFiltro = function(coluna) {
         delete filtrosColuna[coluna];
-        // Atualiza o select correspondente
         const select = document.querySelector(`.filter-group select[data-coluna="${coluna}"]`);
         if (select) select.value = '';
         aplicarFiltrosCompletos();
     };
     
-    // Aplica todos os filtros (global + coluna)
     function aplicarFiltrosCompletos() {
         if (timeoutFiltro) clearTimeout(timeoutFiltro);
         
@@ -680,7 +698,6 @@
             
             let resultados = [...dadosCompletos];
             
-            // 1. Filtro por coluna
             const filtrosAtivos = Object.entries(filtrosColuna).filter(([col, val]) => val && val !== '');
             if (filtrosAtivos.length > 0) {
                 resultados = resultados.filter(item => {
@@ -692,10 +709,8 @@
                 });
             }
             
-            // 2. Filtro global (busca em todas as colunas)
             if (termoGlobal) {
                 resultados = resultados.filter((item, idx) => {
-                    // Precisa encontrar o índice original para o searchIndex
                     const originalIndex = dadosCompletos.findIndex(d => d === item);
                     return searchIndex[originalIndex]?.includes(termoGlobal);
                 });
@@ -720,7 +735,7 @@
     function renderizarTabelaRapida(dados, termo = '') {
         requestAnimationFrame(() => {
             if (!colunasAtuais.length) {
-                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2<tr>';
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2</tr>';
                 return;
             }
             
@@ -737,7 +752,7 @@
             
             if (dados.length === 0) {
                 let colspan = colunasAtuais.length;
-                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado.2<html>`;
+                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado.2</tr>`;
                 return;
             }
             
@@ -869,10 +884,9 @@
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...<tr></tr>';
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...2</tr>';
         tableHead.innerHTML = '';
         
-        // Esconde painel de filtros enquanto carrega
         filtersPanel.style.display = 'none';
         
         const { colunas, dados } = await buscarDados(aba.sheetName);
@@ -882,7 +896,7 @@
             colunasAtuais = [];
             dadosFiltrados = [];
             searchIndex = [];
-            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".</td></tr>`;
+            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".2</tr>`;
             totalRecordsSpan.innerText = '0';
             totalValueSpan.innerText = formatarMoeda(0);
             filtersPanel.style.display = 'none';
@@ -892,7 +906,6 @@
         
         const colunasFinanceiras = identificarColunasFinanceiras(colunas);
         
-        // Pré-calcula valores totais
         for (let i = 0; i < dados.length; i++) {
             dados[i]._valorTotal = somarValoresLinha(dados[i], colunasFinanceiras);
         }
@@ -900,16 +913,12 @@
         dadosCompletos = dados;
         colunasAtuais = colunas;
         
-        // Constrói índice de busca
         searchIndex = construirSearchIndex(dadosCompletos, colunas);
         
-        // Reseta filtros
         filtrosColuna = {};
         
-        // Atualiza os filtros por coluna
         atualizarFiltrosSelect();
         
-        // Mostra painel de filtros
         filtersPanel.style.display = 'block';
         
         searchInput.value = '';
@@ -936,20 +945,19 @@
     }
     
     function configurarBusca() {
-        // Digitar no campo pesquisa em tempo real
         searchInput.addEventListener('input', (e) => {
             aplicarFiltrosCompletos();
         });
         
-        // Botão de pesquisa - também aplica os filtros
-        searchButton.addEventListener('click', () => {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
             aplicarFiltrosCompletos();
+            searchInput.focus();
         });
     }
     
     clearAllFiltersBtn.addEventListener('click', () => {
         filtrosColuna = {};
-        // Limpa todos os selects
         document.querySelectorAll('.filter-group select').forEach(select => {
             select.value = '';
         });
