@@ -74,45 +74,47 @@
         }
 
         .tabs-wrapper {
-    margin-bottom: 20px;
-    overflow-x: visible;
-}
+            margin-bottom: 20px;
+            overflow-x: visible;
+        }
 
-.tabs-list {
-    display: flex;
-    flex-wrap: wrap;        /* Permite quebrar para próxima linha */
-    gap: 8px;
-    background: white;
-    padding: 8px 12px;      /* Aumenta um pouco o padding */
-    border-radius: 20px;
-    border: 1px solid #e2eaf1;
-    width: 100%;
-    justify-content: flex-start;
-}
+        .tabs-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid #e2eaf1;
+            width: 100%;
+            justify-content: flex-start;
+        }
 
-.tab-btn {
-    background: transparent;
-    border: none;
-    font-weight: 600;
-    font-size: 0.8rem;      /* Pode diminuir um pouco se quiser */
-    padding: 8px 16px;
-    border-radius: 40px;
-    cursor: pointer;
-    color: #3f5a77;
-    white-space: nowrap;     /* Mantém o texto em uma linha */
-    transition: all 0.2s;
-}
-@media (max-width: 600px) {
-    .tab-btn {
-        font-size: 0.7rem;
-        padding: 6px 12px;
-    }
-    
-    .tabs-list {
-        gap: 6px;
-        padding: 6px 10px;
-    }
-}
+        .tab-btn {
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #3f5a77;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 600px) {
+            .tab-btn {
+                font-size: 0.7rem;
+                padding: 6px 12px;
+            }
+            
+            .tabs-list {
+                gap: 6px;
+                padding: 6px 10px;
+            }
+        }
+
         .tab-btn.active {
             background: #1f5780;
             color: white;
@@ -204,9 +206,16 @@
             border: 1px solid #e2eaf1;
         }
 
-        .search-box {
+        .search-wrapper {
             flex: 2;
             min-width: 250px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
             display: flex;
             align-items: center;
             background: #f8fafc;
@@ -222,6 +231,27 @@
             background: transparent;
             font-size: 0.9rem;
             outline: none;
+        }
+
+        .search-btn {
+            background: #1f5780;
+            border: none;
+            border-radius: 40px;
+            padding: 0 20px;
+            height: 42px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-btn:hover {
+            background: #0e3b5c;
         }
 
         .filter-stats {
@@ -284,9 +314,9 @@
             background: white;
             border-radius: 16px;
             overflow-x: auto;
+            overflow-y: auto;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             max-height: 55vh;
-            overflow-y: auto;
         }
 
         .data-table {
@@ -294,6 +324,7 @@
             border-collapse: collapse;
             font-size: 0.75rem;
             table-layout: auto;
+            min-width: 800px;
         }
 
         .data-table th {
@@ -370,6 +401,12 @@
             .filter-group {
                 min-width: 120px;
             }
+            .search-btn span {
+                display: none;
+            }
+            .search-btn {
+                padding: 0 15px;
+            }
         }
     </style>
 </head>
@@ -412,9 +449,15 @@
     </div>
 
     <div class="search-panel">
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisa global (busca em todas as colunas)" autocomplete="off">
+        <div class="search-wrapper">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Pesquisa global (busca em todas as colunas)" autocomplete="off">
+            </div>
+            <button class="search-btn" id="searchButton">
+                <i class="fas fa-search"></i>
+                <span>Pesquisar</span>
+            </button>
         </div>
         <div class="filter-stats">
             <div class="filter-chip">📋 Filtrados: <span id="filteredCount">0</span></div>
@@ -457,6 +500,7 @@
     
     // Elementos DOM
     const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
     const filteredCountSpan = document.getElementById('filteredCount');
     const filteredSumSpan = document.getElementById('filteredSum');
     const totalRecordsSpan = document.getElementById('totalRecords');
@@ -676,7 +720,7 @@
     function renderizarTabelaRapida(dados, termo = '') {
         requestAnimationFrame(() => {
             if (!colunasAtuais.length) {
-                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2</tr>';
+                tableBody.innerHTML = '<tr class="empty-message"><td colspan="10">Nenhuma coluna carregada.2<tr>';
                 return;
             }
             
@@ -693,7 +737,7 @@
             
             if (dados.length === 0) {
                 let colspan = colunasAtuais.length;
-                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado.</tr>`;
+                tableBody.innerHTML = `<tr class="empty-message"><td colspan="${colspan}">Nenhum registro encontrado.2<html>`;
                 return;
             }
             
@@ -717,7 +761,7 @@
                     }
                     
                     const classeExtra = (col.toLowerCase().includes('valor') || col.toLowerCase().includes('custeio')) ? 'class="valor-highlight"' : '';
-                    rowHtml += `<td ${classeExtra}>${cellHtml}</td>`;
+                    rowHtml += `<td ${classeExtra}>${cellHtml}78>
                 }
                 rowHtml += '</tr>';
                 htmlRows += rowHtml;
@@ -825,7 +869,7 @@
         });
         
         mostrarLoading(true);
-        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...</td></tr>';
+        tableBody.innerHTML = '<tr class="empty-message"><td colspan="20">Carregando dados...<tr></tr>';
         tableHead.innerHTML = '';
         
         // Esconde painel de filtros enquanto carrega
@@ -838,7 +882,7 @@
             colunasAtuais = [];
             dadosFiltrados = [];
             searchIndex = [];
-            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".</tr>`;
+            tableBody.innerHTML = `<tr class="empty-message"><td colspan="10">⚠️ Nenhum dado encontrado na aba "${aba.sheetName}".</td></tr>`;
             totalRecordsSpan.innerText = '0';
             totalValueSpan.innerText = formatarMoeda(0);
             filtersPanel.style.display = 'none';
@@ -892,7 +936,13 @@
     }
     
     function configurarBusca() {
+        // Digitar no campo pesquisa em tempo real
         searchInput.addEventListener('input', (e) => {
+            aplicarFiltrosCompletos();
+        });
+        
+        // Botão de pesquisa - também aplica os filtros
+        searchButton.addEventListener('click', () => {
             aplicarFiltrosCompletos();
         });
     }
